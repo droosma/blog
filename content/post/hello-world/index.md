@@ -3,6 +3,7 @@ title: Hello World
 description: Welcome to Insights in Coding with Duncan
 slug: hello-world
 date: 2023-07-24 00:00:00+0000
+original: true
 image: cover.jpg
 categories:
     - Personal
