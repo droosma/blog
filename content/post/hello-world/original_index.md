@@ -1,13 +1,3 @@
----
-title: Hello World
-description: Welcome to Insights in Coding with Duncan
-slug: hello-world
-date: 2023-07-24 00:00:00+0000
-image: cover.jpg
-categories:
-    - Personal
----
-
 ## Hello
 
 Welcome to my blog. I'm Duncan, a software engineer from Netherlands. I've been working in the industry sins 2008, and I've decided to start sharing my thoughts and opinions on the industry, and the world in general.
