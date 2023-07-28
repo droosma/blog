@@ -18,7 +18,9 @@
 			"extensions": [
 				"GitHub.copilot",
 				"tamasfe.even-better-toml",
-				"davidanson.vscode-markdownlint"
+				"davidanson.vscode-markdownlint",
+				"budparr.language-hugo-vscode",
+				"kaellarkin.hugo-shortcode-syntax"
 			]
 		}
 	},
