@@ -35,7 +35,9 @@ Once I unleashed my stream of thoughts onto the prompt, a striking transformatio
 
 ## Transforming Mountains into Hills
 
-This little tool, for which I pay 20 euros a month, helped me transform the towering mountain in my head into a collection of manageable hills. Instead of staring at a blank page and having to conjure up what to write, I now had the task of reading these generated ADRs and modifying them to fit what I deemed necessary or missing. It doesn’t mean that my work was done, but it did mean I had a solid launching pad.
+[ChatGPT](https://chat.openai.com/), a nifty AI tool powered by its fourth-generation GPT model, served as my personal mountain guide, transforming the Everest-sized task in my head into a series of more manageable foothills. Instead of being faced with the daunting blank page, wondering how to express my thoughts, I was now presented with a series of AI-generated ADRs. It’s crucial to note, though, that these were just the foundations, rough sketches if you will, and not the finished structure.
+
+Every ADR required meticulous scrutiny, fact-checking, and amendments to ensure they truly captured the essence of the decisions and requirements. It felt less like generating new content and more like refining a rough gemstone into a polished jewel. The work was far from over, but what this tool offered was a head start; a launching pad from which I could dive into the nitty-gritty of editing and refining. It gave me the momentum I needed to overcome the inertia that often comes with starting such a daunting task from scratch.
 
 ## Looking to the Future
 
