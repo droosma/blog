@@ -41,6 +41,6 @@ Every ADR required meticulous scrutiny, fact-checking, and amendments to ensure 
 
 ## Looking to the Future
 
-The saying, "AI is not going to replace you, but someone using AI will," echoes in my mind. As of now, I'm not convinced it will replace me. However, given the exponential growth of technology, who knows what tomorrow may bring? This expression rings true as an absolute minimum. It allowed someone like me, inexperienced with documentation due to my disability, to take a significant step forward.
+In the midst of working with GPT, I often find myself contemplating the future. Online, you'll encounter the statement: "AI is not going to replace you, but someone using AI will." This serves as a counter-narrative to the hype suggesting that AI will replace all knowledge workers, and it resonates with me. As it stands, I don't believe AI is on the verge of replacing me. Yet, having witnessed the exponential growth of technology, who's to say what tomorrow might bring? For me, the "but someone using AI will" portion of the statement seems a bare minimum. It allowed someone like me, inexperienced with documentation due to misplaced incentives resulting from my dyslexia, to take a substantial leap forward.
 
-What this journey taught me is that the future is not about man versus machine, but rather, man with machine, each aiding the other in overcoming their limitations and achieving their full potential.
+What I do know is this: AI is already assisting me in overcoming my limitations and pushing me towards reaching my full potential. It has become an invaluable tool in my developer's toolkit. Despite any reservations I might have, I'm eagerly looking forward to what the future of AI holds for us.
