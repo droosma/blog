@@ -21,9 +21,9 @@ But, as my career aspirations grew, I found myself at a juncture where avoiding 
 
 ## The Daunting Assignment
 
-Recently, I embarked on a short-term assignment that involved creating an extensive architecture document. The prospect was daunting, and I questioned the necessity of such a document. After a bout of deliberation, I ended up with a list of Architecture Decision Records (ADR), which encapsulated the individual, requirement-specific architectural choices that needed to be made.
+Recently, I tackled a short-term assignment that initially required the creation of a voluminous architecture document. Firm in my conviction that such grand documents are often more of a time sink than a useful tool—perhaps due to my personal aversion to both writing and reading them—I managed to persuade the team to reconsider this approach. Instead, we agreed on compiling a list of [Architecture Decision Records (ADR)](https://adr.github.io/), focusing on the individual, requirement-specific architectural choices that had to be made.
 
-Writing about these 10 ADRs seemed as insurmountable as climbing Mount Everest. Despite having successfully captured the requirements with my colleagues and having a clear insight into the individual decisions involved, the sheer size of the task felt overwhelming.
+Yet, even with this compromise, the idea of detailing these 10 ADRs felt as daunting as an ascent up Mount Everest. Even though we had successfully captured the requirements and I had a clear grasp of the decisions involved, the sheer scale of the undertaking was overwhelming.
 
 ## AI to the Rescue
 
