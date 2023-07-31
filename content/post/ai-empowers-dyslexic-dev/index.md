@@ -27,9 +27,11 @@ Yet, even with this compromise, the idea of detailing these 10 ADRs felt as daun
 
 ## AI to the Rescue
 
-Being an avid proponent of GPT in my development work, I started utilizing it to overcome my literary challenges. I began by creating a prompt with the ADR template, then moved on to describe the decision as I understood it. I wrote a large, unstructured blob of text where I attempted to explain the decision along with any requirements or unique observations from our refinement sessions.
+Being a firm advocate for GPT in my development work, I realized its potential to help me overcome my literacy challenges. It all began with creating a prompt, embedded with our chosen ADR template. To this prompt, I added some clear directions like use American English and yield responses in raw markdown format.
 
-Suddenly, one by one, like pearls on a string, the ADRs started flowing out of the GPT model. Fully filled-out templates were generated within minutes.
+With the initial setup complete, the next hurdle was describing the decision as I understood it. Rather than meticulously crafting a well-structured and cohesive narrative, I let my thoughts pour out onto the page. I tried to encapsulate the decision, including all the requirements and unique insights gathered during our refinement sessions. Every consideration, every detail discussed in our meetings, was thrown into this expansive, unstructured text. I paid no heed to crafting perfect sentences or structuring my thoughts – my focus was solely on capturing everything.
+
+Once I unleashed my stream of thoughts onto the prompt, a striking transformation occurred. Individual ADRs began materializing from the GPT model, each one taking form within a span of 10 to 20 minutes. The model functioned like a well-calibrated machine, rapidly turning raw input into neatly formatted templates. What was once a daunting task now seemed like a smoothly flowing assembly line of ideas.
 
 ## Transforming Mountains into Hills
 
