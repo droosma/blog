@@ -13,9 +13,30 @@ tags:
     - ADR
 ---
 
-I'm dyslexic developer, because of this I have always disliked documenting my project. I have always looke for ways to not have to do it, "self documenting code", "living documentation" Given my career goals I have reached a point that I can no longer escape it. Recently I started a short term assignment in which I needed to create a giand architecture document. I had already challenged them on the usefullness of that, and ended up with a List of ADR (Architecture desicion records) for individual requirement specific architectural choises that needed to be made. This task, write about 10 ADR's seemed insurmountable to me. Me and some collegues already successfully managed to capture there requirements and I had a good insight into what these indivudual desciions enthailed. Felt dounthing to me.
-As I have been a big proponent of using GPT in my Development work. I have started using it more and more to help me grow past my literatur challange and inexperience. So I started by creating a prompt where I added the ADR template. Next I just described the Descision as I understood it, just a big blob of text in which I tried to explain the descison along with any requirements or individual things I notices during the refinement sessions we had had.
-One after another the ADR's started to flow out of the GPT model. Complete filled-out templates generated in minutes.
-This small tool for which I pay 20 euro's a month just helpt me reduce the giant mountain in my head to a collection of hills. Because it generated the 10 ADRs Instead of me having the think of what to write I now have to read these, and start changing what I don't like or feel like I'm missing. This doesnt mean I'm done, but it does mean I have a good starting point.
+## The Struggle of a Dyslexic Developer
 
-To me the expression, "ai is not going to replace you someone using ai will" echo's in the back of my mind. I'm not sure it's not going to replace me as it stands now, NO, but technology developers exponentially so, maybe tomorrow. To me this expression is pure truth as the minimum. It allowed some one like me, inexperienced with documenting because of my disability, to take a step.
+As a dyslexic developer, the idea of documenting projects has always been an uphill battle for me. With every piece of code I wrote, the inevitable "documentation dread" loomed over me like a dark cloud. I constantly sought refuge in strategies such as "self-documenting code" and "living documentation", always finding ways to circumnavigate the documentation storm.
+
+However, the winds of my career aspirations finally pushed me to a point where escaping from this dreaded task was no longer an option.
+
+## The Daunting Assignment
+
+Recently, I embarked on a short-term assignment that involved creating an extensive architecture document. The prospect was daunting, and I questioned the necessity of such a document. After a bout of deliberation, I ended up with a list of Architecture Decision Records (ADR), which encapsulated the individual, requirement-specific architectural choices that needed to be made.
+
+Writing about these 10 ADRs seemed as insurmountable as climbing Mount Everest. Despite having successfully captured the requirements with my colleagues and having a clear insight into the individual decisions involved, the sheer size of the task felt overwhelming.
+
+## AI to the Rescue
+
+Being an avid proponent of GPT in my development work, I started utilizing it to overcome my literary challenges. I began by creating a prompt with the ADR template, then moved on to describe the decision as I understood it. I wrote a large, unstructured blob of text where I attempted to explain the decision along with any requirements or unique observations from our refinement sessions.
+
+Suddenly, one by one, like pearls on a string, the ADRs started flowing out of the GPT model. Fully filled-out templates were generated within minutes.
+
+## Transforming Mountains into Hills
+
+This little tool, for which I pay 20 euros a month, helped me transform the towering mountain in my head into a collection of manageable hills. Instead of staring at a blank page and having to conjure up what to write, I now had the task of reading these generated ADRs and modifying them to fit what I deemed necessary or missing. It doesn’t mean that my work was done, but it did mean I had a solid launching pad.
+
+## Looking to the Future
+
+The saying, "AI is not going to replace you, but someone using AI will," echoes in my mind. As of now, I'm not convinced it will replace me. However, given the exponential growth of technology, who knows what tomorrow may bring? This expression rings true as an absolute minimum. It allowed someone like me, inexperienced with documentation due to my disability, to take a significant step forward.
+
+What this journey taught me is that the future is not about man versus machine, but rather, man with machine, each aiding the other in overcoming their limitations and achieving their full potential.
