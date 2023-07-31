@@ -15,9 +15,9 @@ tags:
 
 ## The Struggle of a Dyslexic Developer
 
-As a dyslexic developer, the idea of documenting projects has always been an uphill battle for me. With every piece of code I wrote, the inevitable "documentation dread" loomed over me like a dark cloud. I constantly sought refuge in strategies such as "self-documenting code" and "living documentation", always finding ways to circumnavigate the documentation storm.
+As a dyslexic developer, documenting projects has always felt like trying to solve an intricate puzzle with missing pieces. Every new line of code I wrote came bundled with the lingering shadow of 'documentation dread'. I frequently leaned on excuses such as 'it's self-documenting code' and techniques like 'living documentation', consistently searching for creative detours around the documentation challenge.
 
-However, the winds of my career aspirations finally pushed me to a point where escaping from this dreaded task was no longer an option.
+But, as my career aspirations grew, I found myself at a juncture where avoiding this formidable task was no longer viable.
 
 ## The Daunting Assignment
 
