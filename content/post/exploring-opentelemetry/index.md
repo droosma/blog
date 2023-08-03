@@ -12,27 +12,29 @@ tags:
     - .NET
 ---
 
-In this article I will be describing how I use OpenTelemetry as my go-to tool for observability. I will be going into detail about how to set it up, how to configure it, and how to integrate it with some of the services I use. I will also be showing you how to use it locally to get a feel for the data it produces. You can find all the code I use in this article in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry)
+In this guide, I share my experience with OpenTelemetry, a tool I use for observability. We'll cover the setup process, configuration, and service integration. I'll also guide you on how to use OpenTelemetry locally, providing insight into the data it generates without needing the internet. All code examples in this article are in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry).
 
-I won't be going into how to use OpenTelemetry in your application, there are lots of resources online, do keep you eyes out for a future blog post about my particular way of doing this
+Though this article touches on aspects of OpenTelemetry, it doesn't go into the specifics of implementing telemetry in applications—numerous online resources cover that. However, anticipate a future blog post where I discuss my approach to incorporating telemetry into my applications.
 
 ## Producer
 
-To play around with OpenTelemetry is nice to have a application that can produce some data, here is the absolute minimum you need to do to get OpenTelemetry up and running
+To experiment with OpenTelemetry, an application that generates data is required. For the simplest OpenTelemetry setup, start by creating a new directory and executing the following commands:
 
-The NuGet package references:
+```powershell
+dotnet new web
+dotnet add package OpenTelemetry.Exporter.Console
+dotnet add package OpenTelemetry.Extensions.Hosting
 
-```xml
-<ItemGroup>
-    <PackageReference Include="OpenTelemetry" Version="1.5.1" />
-    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.5.1" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.5.1" />
-</ItemGroup>
 ```
 
-And have the following code in your `Program.cs`:
+Next, incorporate the following code into your `Program.cs`:
 
 ```csharp
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+
 var builder = WebApplication.CreateBuilder(args);
 var resourceBuilder = ResourceBuilder.CreateDefault()
                                      .AddService("producer", "v1.0.0");
@@ -53,7 +55,7 @@ var app = builder.Build();
 app.Run();
 ```
 
-When you run this code, you should see the following output in the console:
+Launch the application using `dotnet run` and you should notice the following output in your console:
 
 ```text
 info: Microsoft.Hosting.Lifetime[14]
@@ -77,54 +79,51 @@ telemetry.sdk.language: dotnet
 telemetry.sdk.version: 1.5.1
 ```
 
-Great, now lets quickly move on to something a bit more usable and maintainable.
+Now that you've handled the basics, let's advance to a more useful and maintainable setup.
 
 ## OpenTelemetry Collector
 
-In the sample above we used the [console exporter](https://www.nuget.org/packages/OpenTelemetry.Exporter.Console) to output the telemetry. This is great for local development when you are just starting out with OpenTelemetry, but as soon as you start implementing more observability in your application the information that is being logged to the console will become overwhelming.
+In the previous example, we utilized the [OpenTelemetry.Exporter.Console](https://www.nuget.org/packages/OpenTelemetry.Exporter.Console) package to display telemetry. While it's suitable for initial local development with OpenTelemetry, as you expand your application's observability, the volume of data logged to the console can become excessive and unreadable.
 
-If you search for [`OpenTelemetry.Exporter` on nuget.org](https://www.nuget.org/packages?q=OpenTelemetry.Exporter) you will see a long list of exporters that you can use to output your telemetry to. The way I see it, adding these packages is not the way to go. Except the occasional side project, most of the software I write is deployed on multiple environments with varying requirements. For example, during development I might want to output the telemetry to the console, but in test or acceptance we might have a central Application Performance Monitoring (APM) service that is configured to store everything but only keep it for 7 days. And in production we might even have to send the telemetry to multiple APM Saas providers.
+Searching for [`OpenTelemetry.Exporter` on nuget.org](https://www.nuget.org/packages?q=OpenTelemetry.Exporter) yields a variety of exporters for your telemetry output. However, simply adding these packages doesn't strike me as the optimal solution. Except for occasional side projects, most software I develop gets deployed across multiple environments with diverse requirements. For instance, during development, I might prefer console output for telemetry. But in test or acceptance stages, there might be a central Application Performance Monitoring (APM) service that saves all data but only retains it for a week. In a production environment, we might even need to send distinct telemetry to various APM SaaS providers.
 
-If you would use the `OpenTelemetry.Exporter` packages you would have to add a lot of conditional code to your application to support all these different environments.
-The way I see it, the application should not be concerned with where the telemetry is going, it should just produce it. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) comes in.
+Relying on `OpenTelemetry.Exporter.*` packages would necessitate significant conditional coding in your application to accommodate these varied environments. My stance is that an application should remain unconcerned about telemetry destination—it should simply generate it. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) proves useful.
 
-Instead of the Console Exporter we will be using [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol)
-and instead of `AddConsoleExporter()` we will be using `AddOtlpExporter()`.
-By default the OTLP exporter will output the telemetry to `http://localhost:4317` using the GRPC protocol, but we can configure it to output to any destination we want like so:
+We'll replace the Console Exporter with [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol), and `AddConsoleExporter()` with `AddOtlpExporter()`. The OTLP exporter defaults to `http://localhost:4317` for telemetry output using the GRPC protocol, but we can configure it for any desired destination as follows:
 
 ```csharp
 builder.AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("172.17.0.10:1234"));
 ```
 
-Ok, so now we have it logging to the void, as we don't have anything listening on `http://localhost:4317`. Lets fix that by running the OpenTelemetry Collector.
+For the subsequent steps, I suggest using the Producer from my repository, as it's already correctly configured.
 
-I like to run the OpenTelemetry Collector in a Docker container, so I have a `docker-compose.yaml` file contains the following:
+Our current setup logs to the void, as there's nothing listening at `http://localhost:4317`. Let's rectify that by running the OpenTelemetry Collector.
+
+Running the OpenTelemetry Collector in a Docker container is my preference, which involves using the following `docker-compose.yaml`:
 
 ```docker-compose
-otel-collector:
-  image: otel/opentelemetry-collector-contrib
-  volumes:
-    - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
-  ports:
-    - 4317
+version: '3'
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 4317:4317
 ```
 
-As you can see the docker-compose file mounts a configuration file to the container. This file will be used by the OpenTelemetry Collector to configure the exporters and receivers.
-Let's start with a simple configuration:
+The Docker Compose file mounts a configuration file for the container. This file configures the exporters and receivers for the OpenTelemetry Collector. For starters, we'll use this basic configuration:
 
 ```yaml
 receivers:
   otlp:
     protocols:
       grpc:
-
 processors:
   batch:
-
 exporters:
   logging:
     verbosity: detailed
-
 service:
   pipelines:
     traces:
@@ -141,9 +140,9 @@ service:
       exporters: [logging]
 ```
 
-We configure an OTLP receiver that uses the GRPC protocol the default for `AddOtlpExporter()`, a batch processor and a logging exporter. Next we configure a pipeline for each type of telemetry or [signal](https://opentelemetry.io/docs/concepts/signals/). Each pipeline has a receivers (IN), processors (TRANSFORM) and exporters (OUT). In this case we are using the same single receiver, processor and exporter for all three pipelines.
+This setup includes an OTLP receiver using the GRPC protocol, a batch processor, and a logging exporter. We then establish a pipeline for each telemetry type or [signal](https://opentelemetry.io/docs/concepts/signals/). Each pipeline contains receivers (IN), processors (TRANSFORM), and exporters (OUT). We're using the same single receiver, processor, and exporter for all three pipelines.
 
-If you now run you docker-compose file and run the application with: `dotnet run --project .\producer\Producer.csproj`, you should see a very familiar output in the console:
+Running the Docker Compose file and the application `dotnet run --project .\producer\Producer.csproj` should yield a familiar console output:
 
 ```text
 exploring-opentelemetry-otel-collector-1  | LogRecord #0
@@ -162,42 +161,40 @@ exploring-opentelemetry-otel-collector-1  | Span ID:
 exploring-opentelemetry-otel-collector-1  | Flags: 0
 ```
 
-Great, we have the same as before, but now with more dependencies. But now we start to see the power of the OpenTelemetry Collector. We can now add more exporters to the configuration file and the application will not have to change at all.
+This situation seems unchanged, except we've introduced more dependencies. However, the OpenTelemetry Collector's strength begins to show. By adding more exporters to the configuration file, we keep the application code unchanged.
 
-The keen eyed will have noticed that the image used in the docker-compose has a `-contrib` suffix. This is because the OpenTelemetry Collector is a project that is maintained by the OpenTelemetry project, but the community is free to add their own exporters and receivers. These are maintained in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project. This project contains a lot of exporters and receivers for a lot of different systems and products.
+You may have noticed the `-contrib` suffix in the Docker Compose file. This is because the OpenTelemetry Collector project, maintained by the OpenTelemetry project, allows community contributions for their own exporters and receivers. These are found in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project, hosting many exporters and receivers for different systems and products.
 
-Now exporting you telemetry is a simple as adding a new exporter to the configuration file, let's try adding a [Honeycomb](https://www.honeycomb.io/) exporter:
+Now, exporting your telemetry is as simple as adding a new exporter to the configuration file. Let's add a Honeycomb exporter and incorporate it into the logs pipeline:
 
 ```yaml
 exporters:
+  ...
   otlp/honeycomb:
     endpoint: "api.honeycomb.io:443"
     headers:
       "x-honeycomb-team": "YOUR_API_KEY"
-```
-
-And changing the pipeline to use the new exporter:
-
-```yaml
 service:
   pipelines:
     ....
     logs:
       ....
-      exporters: [logging, otlp/honeycomb]
+      exporters: [logging, otlp/honeycomb]      
 ```
 
-For a list of supported exporters see [here](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter)
+In the configuration file, you simply need to specify your Honeycomb API key in place of `YOUR_API_KEY`.
+
+For a complete list of supported exporters, refer to the official [OpenTelemetry Collector repository](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter)
 
 ## Working locally
 
-While I love products like Honeycomb or [DataDog](https://www.datadoghq.com/), I don't want to have to rely on them for my local development. Having frequent internet blackouts during my commute, I want to be able to work offline. Here too the OpenTelemetry Collector comes to the rescue.
+Despite my admiration for products like Honeycomb and [DataDog](https://www.datadoghq.com/), I prefer not to be dependent on them for local development. Given that internet blackouts can be frequent during my commute, I find it important to be able to work offline. In these circumstances, the OpenTelemetry Collector proves highly beneficial.
 
-There are some awesome docker images out there that we can configure the collector to use.
+There exist numerous impressive Docker images that can be configured for use with the collector.
 
 ### Tracing
 
-For tracing it relatively simple, there a lot open source systems that allow you to run an instance locally. I often use [Jaeger](https://www.jaegertracing.io/) this is a great open source tracing system. There is a [docker image](https://hub.docker.com/r/jaegertracing/all-in-one) that we can use to spin-up a local instance of Jaeger. Let change our docker-compose file to use this image by adding the following:
+For tracing, the solution is relatively straightforward. There are many open source systems that allow you to run an instance locally. I frequently use [Jaeger](https://www.jaegertracing.io/), an excellent open source tracing system. There is a [docker image](https://hub.docker.com/r/jaegertracing/all-in-one) that allows us to spin up a local instance of Jaeger. Let's adjust our `docker-compose.yaml` file to utilize this image by adding the following:
 
 ```yaml
   otel-collector:
@@ -211,7 +208,7 @@ For tracing it relatively simple, there a lot open source systems that allow you
       - 16686
 ```
 
-And change the configuration file to use the Jaeger exporter:
+Next, let's modify the configuration file to use the Jaeger exporter:
 
 ```yaml
 exporters:
@@ -226,12 +223,11 @@ service:
       exporters: [logging, jaeger]
 ```
 
-Restarting your docker-compose file, running the application and visit [http://localhost:5000/trace](http://localhost:5000/trace). Jaeger UI should be available at [http://localhost:16686](http://localhost:16686) there you should see the traces of the producer appear in the UI.
+After restarting your docker-compose and running the application, navigate to [http://localhost:5000/trace](http://localhost:5000/trace). The Jaeger UI should be available at [http://localhost:16686](http://localhost:16686), where you should see the traces of the producer appearing in the UI.
 
 ### Metrics
 
-For metrics it is a little bit more difficult, there are some open source systems out there, but they are not as easy to use as Jaeger. I have found that the best way to work locally is to use the [Prometheus](https://prometheus.io/).
-But as Prometheus is a pull based system, the configuration is a bit different.
+Metrics are a bit more complex to handle than tracing. Although there are several open source systems available, they tend not to be as straightforward to set up as Jaeger. For local development, I've found that the best solution is to use [Prometheus](https://prometheus.io/). But, as Prometheus operates on a pull-based system, the configuration is slightly different.
 
 In the `docker-compose.yml` we add the following:
 
@@ -246,7 +242,7 @@ In the `docker-compose.yml` we add the following:
       - otel-collector
 ```
 
-Pay special attention to the fact that we add a `links` component to the Prometheus container. This is because we want to be able to reach the OpenTelemetry Collector from the Prometheus container. 
+It's crucial to note that we're adding a `links` component to the Prometheus container. This is because we need to be able to reach the OpenTelemetry Collector from the Prometheus container.
 
 In the `otel-collector-config.yaml` we configure the collector to use Prometheus as an exporter:
 
@@ -261,9 +257,9 @@ service:
       exporters: [logging, prometheus]
 ```
 
-Again the endpoint here does not signify the endpoint of the Prometheus instance, but a endpoint of the OpenTelemetry Collector. The Prometheus exporter will start a server on this endpoint that Prometheus can scrape.
+Here, the endpoint doesn't signify the endpoint of the Prometheus instance, but rather an endpoint of the OpenTelemetry Collector. The Prometheus exporter will initiate a server on this endpoint, which Prometheus can then scrape.
 
-Finally we need to configure Prometheus to scrape the OpenTelemetry Collector. This is done in the `prometheus-config.yaml` file:
+Lastly, we need to configure Prometheus to scrape the OpenTelemetry Collector. This is accomplished in the `prometheus-config.yaml` file:
 
 ```yaml
 scrape_configs:
@@ -273,15 +269,15 @@ scrape_configs:
       - targets: ['otel-collector:9123']
 ```
 
-And just like with Jaeger exporter, we just need to restart docker-compose and run the application again, this time visit [http://localhost:5000/metric](http://localhost:5000/metric). Prometheus UI should be available at [http://localhost:16686](http://localhost:16686) where if you enter `random_number_count` into the search field you should see the metrics appear in the UI.
+As with the Jaeger exporter, we need to restart docker-compose and run the application again. This time, visit [http://localhost:5000/metric](http://localhost:5000/metric). The Prometheus UI should be accessible at [http://localhost:9090](http://localhost:9090). If you enter `random_number_count` into the search field, you should see the metrics appear in the UI.
 
 ### Logging
 
-As the logging signal is not that old yet, there are not that many open source systems out there that support it.
+While the logging signal isn't as mature, there aren't as many open-source systems supporting it yet.
 
-But I have gotten it to work with [Loki](https://grafana.com/oss/loki/), but don't have much experience with it, so if you see something wrong, please let me know.
+I've managed to utilize [Loki](https://grafana.com/oss/loki/) for this purpose, albeit I lack extensive experience with it, so please correct me if you spot any inaccuracies.
 
-First we need to add the Loki docker image to the `docker-compose.yml` file:
+Initially, we need to include the Loki docker image in the `docker-compose.yml` file:
 
 ```yaml
 otel-collector:
@@ -300,9 +296,9 @@ loki:
     - 3100:3100
 ```
 
-We make sure to link loki to the OpenTelemetry Collector, so that the collector can reach Loki. And as you might have spotted Loki also needs a configuration file, I have found the following [config online](https://blog.ruanbekker.com/blog/2020/08/13/getting-started-on-logging-with-loki-using-docker/). So this might contain more than we need, but it works. As I'm not really familiar with Loki, I'm not going to go into detail about the configuration, you can find it in the source article, or in my [repository](https://github.com/droosma/exploring-opentelemetry/loki.yaml).
+Ensure that Loki is linked to the OpenTelemetry Collector, so that the collector can access Loki. Loki also needs a configuration file. I found the following [config online](https://blog.ruanbekker.com/blog/2020/08/13/getting-started-on-logging-with-loki-using-docker/). This might contain more than required, but it works. As I'm not entirely familiar with Loki, I won't go into detail about the configuration. You can find it in the source article, or in my [repository](https://github.com/droosma/exploring-opentelemetry/loki.yaml).
 
-As Loki is headless, if you want to actually see your logs we need a UI. For this we can use [Grafana](https://grafana.com/). We add the following to the `docker-compose.yml` file:
+Since Loki is headless, if you want to visualize your logs, you'll need a UI. [Grafana](https://grafana.com/) can serve this purpose. We add the following to the `docker-compose.yml` file:
 
 ```yaml
   grafana:
@@ -315,7 +311,7 @@ As Loki is headless, if you want to actually see your logs we need a UI. For thi
       - loki
 ```
 
-Here we link Grafana to Loki as it needs to be able to reach it. We also need to configure Grafana to use Loki as a datasource. This is done in the `grafana-datasources.yaml` file:
+Here, we link Grafana to Loki as it must be able to access it. We also have to configure Grafana to use Loki as a data source. This is done in the `grafana-datasources.yaml` file:
 
 ```yaml
 # config file version
@@ -336,7 +332,7 @@ datasources:
   editable: false
 ```
 
-The last config we need to do is to configure the OpenTelemetry Collector to use Loki as an exporter. This is done in the `otel-collector-config.yaml` file:
+The final configuration step is to set the OpenTelemetry Collector to use Loki as an exporter. This is done in the `otel-collector-config.yaml` file:
 
 ```yaml
 exporters:
@@ -344,25 +340,19 @@ exporters:
     endpoint: http://loki:3100/loki/api/v1/push
 ```
 
-And just like that, everything should be good to go. We just need to restart docker-compose and run the application again, this time visit [http://localhost:5000/Log](http://localhost:5000/Log). Grafana be available at [http://localhost:3000/explore](http://localhost:3000/explore) if you where if you enter `{job="producer"}` into the query field you should see the logs appear.
+And with that, everything should be ready. We just need to restart docker-compose and run the application again, this time visiting [http://localhost:5000/Log](http://localhost:5000/Log). Grafana should be available at [http://localhost:3000/explore](http://localhost:3000/explore). If you enter `{job="producer"}` into the query field, you should see the logs appear.
 
-### Local APM
+### Application Performance Monitoring
 
-Alright now we have all the individual signals working locally awesome, but ideally we would emulate a full APM like Honeycomb or DataDog. I have been searching for this for quite some time, and to be honest, I have not found a good solution that appeals to me yet.
+We now have all the individual signals functioning locally, a feat in itself, but let's aim higher. In a perfect world, we would want to emulate a full APM solution akin to Honeycomb or DataDog. Regrettably, after an extensive search, I'm yet to stumble upon a solution that fits the bill.
 
-#### Uptrace
+Take [Uptrace](https://uptrace.dev/) for instance, a service I managed to get up and running. If you follow the steps I used and run the `docker-compose` available [here](https://github.com/droosma/exploring-opentelemetry/uptrace/docker-compose.yml), you should see your telemetry data appear in the UI as well. However, the interface leaves much to be desired, being somewhat unintuitive. In fact, I found myself investing more time in wrestling with the UI to get my telemetry data than if I had just switched between individual services.
 
-[Uptrace](https://uptrace.dev/)
-I have been able to get this running, and you should too if you run the `docker-compose` [here](https://github.com/droosma/exploring-opentelemetry/uptrace/docker-compose.yml). I see my telemetry appear in the UI, but I find the interface unintuitive, I end up spending more time trying to figure out how to get my telemetry from the UI than I would if I just switch between the individual services as mentioned above.
+Another option I've come across is Grafana Labs. This company, which offers multiple products, three of which I've mentioned in this post, might present a viable solution. Hypothetically, Jaeger could be substituted with Grafana Tempo, one of their offerings. However, I must admit I haven't tested this out yet. The endgame, it seems, would involve integrating all of Grafana's products and configuring a personalized APM solution via the Grafana UI. This approach could be worthwhile if you're already utilizing Grafana products for your production systems, as it might enable you to replicate your production APM environment locally. But be prepared - this endeavor would require a substantial investment of time and effort, commodities I've not yet been able to spare.
 
-#### Grafana Labs
+Lastly, I've identified a few more APM solutions that I haven't explored as yet:
 
-As Grafana labs already has multiple products, 3 of which I use in this post. Jaeger should be replaceable by [Grafana Tempo](https://grafana.com/oss/tempo/) but I have not tried it yet.
-In the end I think you would still need to combine all of Grafana's products and configure your own APM solution thought the Grafana UI. This might very well be a viable option if you are already using Grafana products for you production systems, as it might be worth while get to a state where your production APM is reproducible locally. But this would require a substation amount of time. I have not been in a situation where I had the time to do this.
+- SigNoz, documentation for which can be found [here](https://signoz.io/docs/install/docker/)
+- Elastic APM, the quick start guide is available [here](https://www.elastic.co/guide/en/apm/get-started/current/quick-start-overview.html)
 
-#### Some others
-
-These are some other APM solutions I have found, but have not tried yet:
-
-- [SigNoz](https://signoz.io/docs/install/docker/)
-- [Elastic APM](https://www.elastic.co/guide/en/apm/get-started/current/quick-start-overview.html)
+To sum it up, finding the perfect local APM solution remains a challenging goal. However, with continued investigation and experimentation, I believe we'll get there.
