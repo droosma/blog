@@ -31,7 +31,7 @@ dotnet add package OpenTelemetry.Extensions.Hosting
 
 ```
 
-Next, incorporate the following code into your `Program.cs`:
+Next, replace the code from `Program.cs` with the following:
 
 ```csharp
 using OpenTelemetry.Logs;
@@ -46,7 +46,8 @@ var resourceBuilder = ResourceBuilder.CreateDefault()
 builder.Services.AddLogging(x => x.AddOpenTelemetry(options => options.SetResourceBuilder(resourceBuilder)
                                                                       .AddConsoleExporter()
                                                    ));
-builder.Services.AddOpenTelemetry()
+builder.Services
+       .AddOpenTelemetry()
        .WithTracing(x => x.AddConsoleExporter()
                           .AddSource("producer")
                           .SetResourceBuilder(resourceBuilder))
@@ -59,7 +60,13 @@ var app = builder.Build();
 app.Run();
 ```
 
-Launch the application using `dotnet run` and you should notice the following output in your console:
+In this code snippet, we're configuring a .NET application with OpenTelemetry for observability. We start off with establishing a ResourceBuilder to define our application metadata—specifically its name and version.
+
+We then inject OpenTelemetry into our logging services, associating it with our defined ResourceBuilder and specifying a console exporter to direct our logs to the console.
+
+Taking things further, we integrate OpenTelemetry into our services, enriching them with both tracing and metrics capabilities. For tracing, we identify the source of the trace data as "producer" and, similar to logging, direct the output to the console. For metrics, we set up a meter labeled "producer" and channel the metrics data to our console too.
+
+When you kick off your application using `dotnet run`, you should see something like this pop up in your console:
 
 ```text
 info: Microsoft.Hosting.Lifetime[14]
