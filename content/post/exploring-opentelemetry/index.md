@@ -12,9 +12,13 @@ tags:
     - .NET
 ---
 
-In this guide, I share my experience with OpenTelemetry, a tool I use for observability. We'll cover the setup process, configuration, and service integration. I'll also guide you on how to use OpenTelemetry locally, providing insight into the data it generates without needing the internet. All code examples in this article are in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry).
+[OpenTelemetry](https://opentelemetry.io/) is an open-source project under the umbrella of the Cloud Native Computing Foundation (CNCF). It was designed with the intent to create a comprehensive and standardized framework for observability in cloud-native software. In today's world, as modern applications are moving towards distributed and microservices architectures, understanding the interactions and performance of these services has become notably challenging. This is precisely the issue that OpenTelemetry strives to address.
 
-Though this article touches on aspects of OpenTelemetry, it doesn't go into the specifics of implementing telemetry in applications—numerous online resources cover that. However, anticipate a future blog post where I discuss my approach to incorporating telemetry into my applications.
+OpenTelemetry offers a unified method to collect, process, and export telemetry data, including metrics, logs, and traces, for further analysis. By providing standard, vendor-neutral APIs, developers are able to instrument their code just once, and subsequently send the data to any backend supporting the OpenTelemetry protocol.
+
+I've found OpenTelemetry to be a highly effective tool for observability and have been an advocate for its use in the projects I contribute to for quite some time. Its popularity, however, does make navigating its usage slightly less than straightforward. Hence, in this article, I intend to share my experiences with OpenTelemetry, walking you through the setup process, configurations, and service integrations. Moreover, I will guide you on utilizing OpenTelemetry locally, providing insights into the data it generates without needing internet connectivity. You can find all the code examples used in this article in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry).
+
+While this article delves into various facets of OpenTelemetry, it doesn't cover the specific implementation of telemetry in applications—there are plenty of online resources that delve into that. However, you can look forward to a subsequent blog post where I will discuss my approach to integrating telemetry into my applications.
 
 ## Producer
 
@@ -87,7 +91,7 @@ In the previous example, we utilized the [OpenTelemetry.Exporter.Console](https:
 
 Searching for [`OpenTelemetry.Exporter` on nuget.org](https://www.nuget.org/packages?q=OpenTelemetry.Exporter) yields a variety of exporters for your telemetry output. However, simply adding these packages doesn't strike me as the optimal solution. Except for occasional side projects, most software I develop gets deployed across multiple environments with diverse requirements. For instance, during development, I might prefer console output for telemetry. But in test or acceptance stages, there might be a central Application Performance Monitoring (APM) service that saves all data but only retains it for a week. In a production environment, we might even need to send distinct telemetry to various APM SaaS providers.
 
-Relying on `OpenTelemetry.Exporter.*` packages would necessitate significant conditional coding in your application to accommodate these varied environments. My stance is that an application should remain unconcerned about telemetry destination—it should simply generate it. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) proves useful.
+Using `OpenTelemetry.Exporter.*` packages would necessitate substantial conditional coding in your application to cater to these varied environments. My position is that an application shouldn't be concerned with the destination of it's telemetry—it should simply produce it. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) comes in handy, taking on the responsibility of exporting your telemetry data. As an added advantage, if you're exporting to multiple APM services, the Collector can offload this task from your application, thereby increasing efficiency.
 
 We'll replace the Console Exporter with [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol), and `AddConsoleExporter()` with `AddOtlpExporter()`. The OTLP exporter defaults to `http://localhost:4317` for telemetry output using the GRPC protocol, but we can configure it for any desired destination as follows:
 
@@ -97,7 +101,7 @@ builder.AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("1
 
 For the subsequent steps, I suggest using the Producer from my repository, as it's already correctly configured.
 
-Our current setup logs to the void, as there's nothing listening at `http://localhost:4317`. Let's rectify that by running the OpenTelemetry Collector.
+Our current configuration is essentially logging into the void, as there's nothing listening at `http://localhost:4317`. Let's address this by launching the OpenTelemetry Collector and setting up the appropriate port forwarding on localhost to the container, thereby allowing it to receive the telemetry data.
 
 Running the OpenTelemetry Collector in a Docker container is my preference, which involves using the following `docker-compose.yaml`:
 
@@ -163,28 +167,7 @@ exploring-opentelemetry-otel-collector-1  | Flags: 0
 
 This situation seems unchanged, except we've introduced more dependencies. However, the OpenTelemetry Collector's strength begins to show. By adding more exporters to the configuration file, we keep the application code unchanged.
 
-You may have noticed the `-contrib` suffix in the Docker Compose file. This is because the OpenTelemetry Collector project, maintained by the OpenTelemetry project, allows community contributions for their own exporters and receivers. These are found in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project, hosting many exporters and receivers for different systems and products.
-
-Now, exporting your telemetry is as simple as adding a new exporter to the configuration file. Let's add a Honeycomb exporter and incorporate it into the logs pipeline:
-
-```yaml
-exporters:
-  ...
-  otlp/honeycomb:
-    endpoint: "api.honeycomb.io:443"
-    headers:
-      "x-honeycomb-team": "YOUR_API_KEY"
-service:
-  pipelines:
-    ....
-    logs:
-      ....
-      exporters: [logging, otlp/honeycomb]      
-```
-
-In the configuration file, you simply need to specify your Honeycomb API key in place of `YOUR_API_KEY`.
-
-For a complete list of supported exporters, refer to the official [OpenTelemetry Collector repository](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter)
+In the Docker Compose file, you may have spotted the `-contrib`` suffix in the Docker Compose file. This originates from the structure of the OpenTelemetry Collector project, a component of the OpenTelemetry project. This larger project actively encourages community contributions, including their own exporters, processors, and receivers, which are consolidated in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project. This community-driven structure makes expanding your telemetry exporting capabilities as straightforward as adding your desired receiver, processor, or exporter into your configuration file. For an extensive list of supported [receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver), [processors](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor), and [exporters](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter), you can refer to the respective links.
 
 ## Working locally
 
@@ -273,11 +256,9 @@ As with the Jaeger exporter, we need to restart docker-compose and run the appli
 
 ### Logging
 
-While the logging signal isn't as mature, there aren't as many open-source systems supporting it yet.
+The logging signal specification was among the last to stabilize in the OpenTelemetry project, happening on the [11th of may 2022](https://github.com/open-telemetry/opentelemetry-proto/commit/d6481eac0579c32ba4f58ee4de9ce0dd29021462). During most of my explorations with OpenTelemetry, many systems implementing the specification were yet to support this feature. I've only utilized the logging signal in a production environment once, and during that period, didn't spend much time operating a local logging system. However, while preparing this article, I managed to successfully use [Loki](https://grafana.com/oss/loki/) as an export target for logging.
 
-I've managed to utilize [Loki](https://grafana.com/oss/loki/) for this purpose, albeit I lack extensive experience with it, so please correct me if you spot any inaccuracies.
-
-Initially, we need to include the Loki docker image in the `docker-compose.yml` file:
+Like the other signals, we need to include the Loki docker image in the `docker-compose.yml` file:
 
 ```yaml
 otel-collector:
@@ -341,6 +322,8 @@ exporters:
 ```
 
 And with that, everything should be ready. We just need to restart docker-compose and run the application again, this time visiting [http://localhost:5000/Log](http://localhost:5000/Log). Grafana should be available at [http://localhost:3000/explore](http://localhost:3000/explore). If you enter `{job="producer"}` into the query field, you should see the logs appear.
+
+As previously stated, my experience with Loki is limited. Therefore, if you detect any inaccuracies or oversights, feel free to reach out to me directly.
 
 ### Application Performance Monitoring
 
