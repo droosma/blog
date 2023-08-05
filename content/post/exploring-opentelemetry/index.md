@@ -16,13 +16,15 @@ tags:
 
 OpenTelemetry offers a unified method to collect, process, and export telemetry data, including metrics, logs, and traces, for further analysis. By providing standard, vendor-neutral APIs, developers are able to instrument their code just once, and subsequently send the data to any backend supporting the OpenTelemetry protocol.
 
-I've found OpenTelemetry to be a highly effective tool for observability and have been an advocate for its use in the projects I contribute to for quite some time. Its popularity, however, does make navigating its usage slightly less than straightforward. Hence, in this article, I intend to share my experiences with OpenTelemetry, walking you through the setup process, configurations, and service integrations. Moreover, I will guide you on utilizing OpenTelemetry locally, providing insights into the data it generates without needing internet connectivity. You can find all the code examples used in this article in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry).
+I've found OpenTelemetry to be a highly effective tool for observability and have been an advocate for its use in the projects I contribute to for quite some time. I intend to share my experiences with OpenTelemetry, walking you through the setup process, configurations, and service integrations. Moreover, I will guide you on utilizing OpenTelemetry locally, providing insights into the data it generates without needing internet connectivity. You can find all the code examples used in this article in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry).
 
 While this article delves into various facets of OpenTelemetry, it doesn't cover the specific implementation of telemetry in applications—there are plenty of online resources that delve into that. However, you can look forward to a subsequent blog post where I will discuss my approach to integrating telemetry into my applications.
 
 ## Producer
 
-To experiment with OpenTelemetry, an application that generates data is required. For the simplest OpenTelemetry setup, start by creating a new directory and executing the following commands:
+When diving into OpenTelemetry, using a familiar language like C# in the .NET framework can make the exploration process smoother. If, like me, C# is the language you use the most, following this guide will be a breeze!
+
+For the simplest OpenTelemetry setup with .NET, start by creating a new directory and executing the following commands:
 
 ```powershell
 dotnet new web
@@ -31,7 +33,7 @@ dotnet add package OpenTelemetry.Extensions.Hosting
 
 ```
 
-Next, replace the code from `Program.cs` with the following:
+After setting up, replace the code from `Program.cs` with the following:
 
 ```csharp
 using OpenTelemetry.Logs;
@@ -60,7 +62,7 @@ var app = builder.Build();
 app.Run();
 ```
 
-In this code snippet, we're configuring a .NET application with OpenTelemetry for observability. We start off with establishing a ResourceBuilder to define our application metadata—specifically its name and version.
+We start off with establishing a ResourceBuilder to define our application metadata—specifically its name and version.
 
 We then inject OpenTelemetry into our logging services, associating it with our defined ResourceBuilder and specifying a console exporter to direct our logs to the console.
 
