@@ -1,7 +1,7 @@
 ---
-title: "Exploring Observability with OpenTelemetry: A Comprehensive Guide"
-description: "Explore OpenTelemetry with a deep dive into setup, configuration, service integration, and local telemetry"
-slug: exploring-opentelemetry
+title: "OpenTelemetry Refined: The Collector’s Approach to Decoupled Data Exporting"
+description: "Stop referencing your OpenTelemetry exporters in your applications. In this article, we'll explore a great way to decouple them using the OpenTelemetry Collector"
+slug: opentelemetry-decoupled
 date: 2023-08-07 00:00:00+0000
 original: true
 image: cover.jpg
