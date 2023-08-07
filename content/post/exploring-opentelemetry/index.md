@@ -2,7 +2,7 @@
 title: "Exploring Observability with OpenTelemetry: A Comprehensive Guide"
 description: "Explore OpenTelemetry with a deep dive into setup, configuration, service integration, and local telemetry"
 slug: exploring-opentelemetry
-date: 2023-08-02 00:00:00+0000
+date: 2023-08-07 00:00:00+0000
 original: true
 image: cover.jpg
 categories:
@@ -12,105 +12,35 @@ tags:
     - .NET
 ---
 
-[OpenTelemetry](https://opentelemetry.io/) is an open-source project under the umbrella of the Cloud Native Computing Foundation (CNCF). It was designed with the intent to create a comprehensive and standardized framework for observability in cloud-native software. In today's world, as modern applications are moving towards distributed and microservices architectures, understanding the interactions and performance of these services has become notably challenging. This is precisely the issue that OpenTelemetry strives to address.
-
-OpenTelemetry offers a unified method to collect, process, and export telemetry data, including metrics, logs, and traces, for further analysis. By providing standard, vendor-neutral APIs, developers are able to instrument their code just once, and subsequently send the data to any backend supporting the OpenTelemetry protocol.
-
-I've found OpenTelemetry to be a highly effective tool for observability and have been an advocate for its use in the projects I contribute to for quite some time. I intend to share my experiences with OpenTelemetry, walking you through the setup process, configurations, and service integrations. Moreover, I will guide you on utilizing OpenTelemetry locally, providing insights into the data it generates without needing internet connectivity. You can find all the code examples used in this article in my [GitHub repository](https://github.com/droosma/exploring-opentelemetry).
-
-While this article delves into various facets of OpenTelemetry, it doesn't cover the specific implementation of telemetry in applications—there are plenty of online resources that delve into that. However, you can look forward to a subsequent blog post where I will discuss my approach to integrating telemetry into my applications.
-
-## Producer
-
-When diving into OpenTelemetry, using a familiar language like C# in the .NET framework can make the exploration process smoother. If, like me, C# is the language you use the most, following this guide will be a breeze!
-
-For the simplest OpenTelemetry setup with .NET, start by creating a new directory and executing the following commands:
-
-```powershell
-dotnet new web
-dotnet add package OpenTelemetry.Exporter.Console
-dotnet add package OpenTelemetry.Extensions.Hosting
-
-```
-
-After setting up, replace the code from `Program.cs` with the following:
+Now that the industry is slowly settling on OpenTelemetry as the defacto framework for application telemetry, I would like to share a pet peeve of mine I see pop up on blog posts and documentation. Not using the OpenTelemetry Protocol al you single exporter. If you follow along with the documentation of even OpenTelemetry itself about [exporter](https://opentelemetry.io/docs/instrumentation/net/exporters/) you will see OpenTelemetry tracing be configured with a [Zipkin](https://zipkin.io/) exporter directly, like so:
 
 ```csharp
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-
 var builder = WebApplication.CreateBuilder(args);
-var resourceBuilder = ResourceBuilder.CreateDefault()
-                                     .AddService("producer", "v1.0.0");
 
-builder.Services.AddLogging(x => x.AddOpenTelemetry(options => options.SetResourceBuilder(resourceBuilder)
-                                                                      .AddConsoleExporter()
-                                                   ));
-builder.Services
-       .AddOpenTelemetry()
-       .WithTracing(x => x.AddConsoleExporter()
-                          .AddSource("producer")
-                          .SetResourceBuilder(resourceBuilder))
-       .WithMetrics(x => x.AddConsoleExporter()
-                          .AddMeter("producer")
-                          .SetResourceBuilder(resourceBuilder));
-
-var app = builder.Build();
-
-app.Run();
+builder.Services.AddOpenTelemetry()
+    .WithTracing(b =>
+    {
+        b.AddZipkinExporter(o =>
+        {
+            o.Endpoint = new Uri("your-zipkin-uri-here");
+        })
+        // The rest of your setup code goes here too
+    });
 ```
-
-We start off with establishing a ResourceBuilder to define our application metadata—specifically its name and version.
-
-We then inject OpenTelemetry into our logging services, associating it with our defined ResourceBuilder and specifying a console exporter to direct our logs to the console.
-
-Taking things further, we integrate OpenTelemetry into our services, enriching them with both tracing and metrics capabilities. For tracing, we identify the source of the trace data as "producer" and, similar to logging, direct the output to the console. For metrics, we set up a meter labeled "producer" and channel the metrics data to our console too.
-
-When you kick off your application using `dotnet run`, you should see something like this pop up in your console:
-
-```text
-info: Microsoft.Hosting.Lifetime[14]
-      Now listening on: https://localhost:5001
-LogRecord.Timestamp:               2023-08-02T16:07:25.1377163Z
-LogRecord.CategoryName:            Microsoft.Hosting.Lifetime
-LogRecord.LogLevel:                Information
-LogRecord.Body:                    Now listening on: {address}
-LogRecord.Attributes (Key:Value):
-    address: https://localhost:5001
-    OriginalFormat (a.k.a Body): Now listening on: {address}
-LogRecord.EventId:                 14
-LogRecord.EventName:               ListeningOnAddress
-
-Resource associated with LogRecord:
-service.name: producer
-service.namespace: v1.0.0
-service.instance.id: b925339d-36d3-4a0c-abcf-aec39b029631
-telemetry.sdk.name: opentelemetry
-telemetry.sdk.language: dotnet
-telemetry.sdk.version: 1.5.1
-```
-
-Now that you've handled the basics, let's advance to a more useful and maintainable setup.
-
-## OpenTelemetry Collector
-
-In the previous example, we utilized the [OpenTelemetry.Exporter.Console](https://www.nuget.org/packages/OpenTelemetry.Exporter.Console) package to display telemetry. While it's suitable for initial local development with OpenTelemetry, as you expand your application's observability, the volume of data logged to the console can become excessive and unreadable.
 
 Searching for [`OpenTelemetry.Exporter` on nuget.org](https://www.nuget.org/packages?q=OpenTelemetry.Exporter) yields a variety of exporters for your telemetry output. However, simply adding these packages doesn't strike me as the optimal solution. Except for occasional side projects, most software I develop gets deployed across multiple environments with diverse requirements. For instance, during development, I might prefer console output for telemetry. But in test or acceptance stages, there might be a central Application Performance Monitoring (APM) service that saves all data but only retains it for a week. In a production environment, we might even need to send distinct telemetry to various APM SaaS providers.
 
 Using `OpenTelemetry.Exporter.*` packages would necessitate substantial conditional coding in your application to cater to these varied environments. My position is that an application shouldn't be concerned with the destination of it's telemetry—it should simply produce it. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) comes in handy, taking on the responsibility of exporting your telemetry data. As an added advantage, if you're exporting to multiple APM services, the Collector can offload this task from your application, thereby increasing efficiency.
 
-We'll replace the Console Exporter with [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol), and `AddConsoleExporter()` with `AddOtlpExporter()`. The OTLP exporter defaults to `http://localhost:4317` for telemetry output using the GRPC protocol, but we can configure it for any desired destination as follows:
+## OpenTelemetry Collector
+
+Instead of using the above mentioned exporters directly in our application and configuration, we'll replace the exporter of your choice with [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol), and in the configuration change `AddZipkinExporter()` to `AddOtlpExporter()`. By default the OTLP exporter will now start exporting all telemetry to `http://localhost:4317` with gRPC, but we can configure it for any desired destination as follows:
 
 ```csharp
-builder.AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("172.17.0.10:1234"));
+.AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("172.17.0.10:1234"));
 ```
 
-For the subsequent steps, I suggest using the Producer from my repository, as it's already correctly configured.
-
-Our current configuration is essentially logging into the void, as there's nothing listening at `http://localhost:4317`. Let's address this by launching the OpenTelemetry Collector and setting up the appropriate port forwarding on localhost to the container, thereby allowing it to receive the telemetry data.
+If you have made the changes, congratulations your application is now logging into the void, as there's nothing listening at `http://localhost:4317`. Let's address this by launching the OpenTelemetry Collector and setting up the appropriate port forwarding on localhost to the container, thereby allowing it to receive the telemetry data.
 
 Running the OpenTelemetry Collector in a Docker container is my preference, which involves using the following `docker-compose.yaml`:
 
@@ -125,7 +55,7 @@ services:
       - 4317:4317
 ```
 
-The Docker Compose file mounts a configuration file for the container. This file configures the exporters and receivers for the OpenTelemetry Collector. For starters, we'll use this basic configuration:
+The Docker Compose file mounts a configuration file for the container. This file configures the exporters and receivers for the OpenTelemetry Collector. Now let's assume you are using the same Zipkin as the above example, we'll use this basic configuration:
 
 ```yaml
 receivers:
@@ -135,52 +65,25 @@ receivers:
 processors:
   batch:
 exporters:
-  logging:
-    verbosity: detailed
+  zipkin:
+    endpoint: your-zipkin-uri-here
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [logging]
-    logs:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [logging]
+      exporters: [zipkin]
 ```
 
-This setup includes an OTLP receiver using the GRPC protocol, a batch processor, and a logging exporter. We then establish a pipeline for each telemetry type or [signal](https://opentelemetry.io/docs/concepts/signals/). Each pipeline contains receivers (IN), processors (TRANSFORM), and exporters (OUT). We're using the same single receiver, processor, and exporter for all three pipelines.
+This setup includes an OTLP receiver using the GRPC protocol, a batch processor, and the zipkin exporter. We then establish a pipeline for the traces [signal](https://opentelemetry.io/docs/concepts/signals/). Each pipeline contains receivers (IN), processors (TRANSFORM), and exporters (OUT). Here I'm only configuring the traces pipeline, check [here](https://opentelemetry.io/docs/collector/configuration/) the a more complete configuration overview. With this in place and running the Docker Compose file and your should see your traces appear in zipkin like before.
 
-Running the Docker Compose file and the application `dotnet run --project .\producer\Producer.csproj` should yield a familiar console output:
-
-```text
-exploring-opentelemetry-otel-collector-1  | LogRecord #0
-exploring-opentelemetry-otel-collector-1  | ObservedTimestamp: 2023-08-02 17:10:57.6799786 +0000 UTC
-exploring-opentelemetry-otel-collector-1  | Timestamp: 2023-08-02 17:10:57.6799786 +0000 UTC
-exploring-opentelemetry-otel-collector-1  | SeverityText: Information
-exploring-opentelemetry-otel-collector-1  | SeverityNumber: Info(9)
-exploring-opentelemetry-otel-collector-1  | Body: Str(Now listening on: {address})
-exploring-opentelemetry-otel-collector-1  | Attributes:
-exploring-opentelemetry-otel-collector-1  |      -> dotnet.ilogger.category: Str(Microsoft.Hosting.Lifetime)
-exploring-opentelemetry-otel-collector-1  |      -> Id: Int(14)
-exploring-opentelemetry-otel-collector-1  |      -> Name: Str(ListeningOnAddress)
-exploring-opentelemetry-otel-collector-1  |      -> address: Str(https://localhost:5001)
-exploring-opentelemetry-otel-collector-1  | Trace ID:
-exploring-opentelemetry-otel-collector-1  | Span ID:
-exploring-opentelemetry-otel-collector-1  | Flags: 0
-```
-
-This situation seems unchanged, except we've introduced more dependencies. However, the OpenTelemetry Collector's strength begins to show. By adding more exporters to the configuration file, we keep the application code unchanged.
+I hear you think, but this situation seems unchanged, except we've introduced more dependencies and configuration. However, the OpenTelemetry Collector's strength begins to show. By adding more exporters to the configuration file, we keep the application code unchanged.
 
 In the Docker Compose file, you may have spotted the `-contrib`` suffix in the Docker Compose file. This originates from the structure of the OpenTelemetry Collector project, a component of the OpenTelemetry project. This larger project actively encourages community contributions, including their own exporters, processors, and receivers, which are consolidated in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project. This community-driven structure makes expanding your telemetry exporting capabilities as straightforward as adding your desired receiver, processor, or exporter into your configuration file. For an extensive list of supported [receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver), [processors](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor), and [exporters](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter), you can refer to the respective links.
 
 ## Working locally
 
-Despite my admiration for products like Honeycomb and [DataDog](https://www.datadoghq.com/), I prefer not to be dependent on them for local development. Given that internet blackouts can be frequent during my commute, I find it important to be able to work offline. In these circumstances, the OpenTelemetry Collector proves highly beneficial.
+Despite my admiration for products like [Honeycomb](https://www.honeycomb.io/) and [DataDog](https://www.datadoghq.com/), I prefer not to be dependent on them for local development. Given that internet blackouts have been frequent during my past commutes, I find the ability to work offline very important. In these circumstances, the OpenTelemetry Collector proves highly beneficial.
 
 There exist numerous impressive Docker images that can be configured for use with the collector.
 
@@ -196,8 +99,8 @@ For tracing, the solution is relatively straightforward. There are many open sou
   jaeger:
     image: jaegertracing/all-in-one
     ports:
-      - 14250
-      - 16686
+      - 14250:14250
+      - 16686:16686
 ```
 
 Next, let's modify the configuration file to use the Jaeger exporter:
