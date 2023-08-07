@@ -12,7 +12,7 @@ tags:
     - .NET
 ---
 
-Now that the industry is slowly settling on OpenTelemetry as the defacto framework for application telemetry, I would like to share a pet peeve of mine I see pop up on blog posts and documentation. Not using the OpenTelemetry Protocol al you single exporter. If you follow along with the documentation of even OpenTelemetry itself about [exporter](https://opentelemetry.io/docs/instrumentation/net/exporters/) you will see OpenTelemetry tracing be configured with a [Zipkin](https://zipkin.io/) exporter directly, like so:
+As the tech landscape progressively adopts OpenTelemetry as the go-to standard for application telemetry, I feel compelled to bring attention to an all too common issue I encounter in various blog posts and documentation - the neglect of the OpenTelemetry Protocol as a singular exporter. When you peruse the official OpenTelemetry documentation or even delve into an article about [exporters](https://opentelemetry.io/docs/instrumentation/net/exporters/), you often stumble upon a direct configuration of OpenTelemetry tracing with a [Zipkin](https://zipkin.io/) exporter.
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -28,9 +28,9 @@ builder.Services.AddOpenTelemetry()
     });
 ```
 
-Searching for [`OpenTelemetry.Exporter` on nuget.org](https://www.nuget.org/packages?q=OpenTelemetry.Exporter) yields a variety of exporters for your telemetry output. However, simply adding these packages doesn't strike me as the optimal solution. Except for occasional side projects, most software I develop gets deployed across multiple environments with diverse requirements. For instance, during development, I might prefer console output for telemetry. But in test or acceptance stages, there might be a central Application Performance Monitoring (APM) service that saves all data but only retains it for a week. In a production environment, we might even need to send distinct telemetry to various APM SaaS providers.
+A quick search for [`OpenTelemetry.Exporter` on nuget.org](https://www.nuget.org/packages?q=OpenTelemetry.Exporter) brings forth an array of exporters suitable for your telemetry output. However, simply incorporating these packages hardly seems like the most efficient approach. The software I develop is generally deployed across multiple environments, each bearing unique requirements. For example, during development, console output might be my telemetry method of choice. But when it comes to testing or acceptance stages, we could be looking at a centralized Application Performance Monitoring (APM) service that holds onto data for a limited period of a week. The story changes further in production, where we may need to dispatch discrete telemetry to multiple APM SaaS providers.
 
-Using `OpenTelemetry.Exporter.*` packages would necessitate substantial conditional coding in your application to cater to these varied environments. My position is that an application shouldn't be concerned with the destination of it's telemetry—it should simply produce it. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) comes in handy, taking on the responsibility of exporting your telemetry data. As an added advantage, if you're exporting to multiple APM services, the Collector can offload this task from your application, thereby increasing efficiency.
+If you choose to use `OpenTelemetry.Exporter.*` packages, your application will demand a fair share of conditional coding to meet these diverse environmental needs. I firmly believe that applications should focus on producing telemetry rather than worry about its destination. This is where the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) takes center stage, relieving your application of the exporting task. A bonus point to consider is the Collector's ability to handle multiple APM services, thus enhancing your application's overall efficiency.
 
 ## OpenTelemetry Collector
 
