@@ -34,15 +34,15 @@ If you choose to use `OpenTelemetry.Exporter.*` packages, your application will 
 
 ## OpenTelemetry Collector
 
-Instead of using the above mentioned exporters directly in our application and configuration, we'll replace the exporter of your choice with [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol), and in the configuration change `AddZipkinExporter()` to `AddOtlpExporter()`. By default the OTLP exporter will now start exporting all telemetry to `http://localhost:4317` with gRPC, but we can configure it for any desired destination as follows:
+Rather than directly employing the aforementioned exporters in our application and configuration, we shift to using [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol) as our exporter of choice. This necessitates modifying `AddZipkinExporter()` to `AddOtlpExporter()` in the configuration. The default configuration of the OTLP exporter sends all telemetry to `http://localhost:4317` via gRPC, but it can be tailored for any destination:
 
 ```csharp
 .AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("172.17.0.10:1234"));
 ```
 
-If you have made the changes, congratulations your application is now logging into the void, as there's nothing listening at `http://localhost:4317`. Let's address this by launching the OpenTelemetry Collector and setting up the appropriate port forwarding on localhost to the container, thereby allowing it to receive the telemetry data.
+If you've implemented these changes, give yourself a pat on the back! Your application now logs into oblivion since nothing is listening on `http://localhost:4317`. Let's rectify this by launching the OpenTelemetry Collector and setting up suitable port forwarding on the container, enabling it to receive the telemetry data.
 
-Running the OpenTelemetry Collector in a Docker container is my preference, which involves using the following `docker-compose.yaml`:
+I prefer running the OpenTelemetry Collector in a Docker container, which can be done using the following `docker-compose.yaml`:
 
 ```docker-compose
 version: '3'
@@ -55,7 +55,7 @@ services:
       - 4317:4317
 ```
 
-The Docker Compose file mounts a configuration file for the container. This file configures the exporters and receivers for the OpenTelemetry Collector. Now let's assume you are using the same Zipkin as the above example, we'll use this basic configuration:
+In the Docker Compose file, we mount a configuration file for the container. This file orchestrates the exporters, processors and receivers for the OpenTelemetry Collector. Assuming that you're utilizing Zipkin as demonstrated earlier, we can resort to this simple configuration:
 
 ```yaml
 receivers:
@@ -75,11 +75,11 @@ service:
       exporters: [zipkin]
 ```
 
-This setup includes an OTLP receiver using the GRPC protocol, a batch processor, and the zipkin exporter. We then establish a pipeline for the traces [signal](https://opentelemetry.io/docs/concepts/signals/). Each pipeline contains receivers (IN), processors (TRANSFORM), and exporters (OUT). Here I'm only configuring the traces pipeline, check [here](https://opentelemetry.io/docs/collector/configuration/) the a more complete configuration overview. With this in place and running the Docker Compose file and your should see your traces appear in zipkin like before.
+Here, we've set up an OTLP receiver using the GRPC protocol, a batch processor, and the Zipkin exporter. Next, we set up a pipeline for the traces [signal](https://opentelemetry.io/docs/concepts/signals/), which includes receivers (IN), processors (TRANSFORM), and exporters (OUT). In this instance, we've only configured the traces pipeline. For a more comprehensive configuration overview, click [here](https://opentelemetry.io/docs/collector/configuration/). Once everything is in place and the Docker Compose file is running, your traces should be visible in Zipkin as before.
 
-I hear you think, but this situation seems unchanged, except we've introduced more dependencies and configuration. However, the OpenTelemetry Collector's strength begins to show. By adding more exporters to the configuration file, we keep the application code unchanged.
+You might be thinking, the situation seems unchanged, apart from the introduction of additional dependencies and configuration. But, the power of the OpenTelemetry Collector is about to shine. By integrating more exporters into the configuration file, the application code remains unaltered.
 
-In the Docker Compose file, you may have spotted the `-contrib`` suffix in the Docker Compose file. This originates from the structure of the OpenTelemetry Collector project, a component of the OpenTelemetry project. This larger project actively encourages community contributions, including their own exporters, processors, and receivers, which are consolidated in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project. This community-driven structure makes expanding your telemetry exporting capabilities as straightforward as adding your desired receiver, processor, or exporter into your configuration file. For an extensive list of supported [receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver), [processors](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor), and [exporters](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter), you can refer to the respective links.
+You might have noticed the `-contrib` suffix in the Docker Compose file. This stems from the structure of the OpenTelemetry Collector project, a part of the larger OpenTelemetry project. This project encourages community contributions, including the creation of their own exporters, processors, and receivers, which are grouped together in the [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) project. This community-oriented structure simplifies the expansion of your telemetry exporting capabilities. All you need to do is include your preferred receiver, processor, or exporter in your configuration file. For a comprehensive list of supported [receivers](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver), [processors](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor), and [exporters](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter), refer to the respective links.
 
 ## Working locally
 
