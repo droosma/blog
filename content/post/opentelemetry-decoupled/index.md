@@ -37,7 +37,7 @@ If you choose to use `OpenTelemetry.Exporter.*` packages, your application will 
 Rather than directly employing the aforementioned exporters in our application and configuration, we shift to using [OpenTelemetry.Exporter.OpenTelemetryProtocol](https://www.nuget.org/packages/OpenTelemetry.Exporter.OpenTelemetryProtocol) as our exporter of choice. This necessitates modifying `AddZipkinExporter()` to `AddOtlpExporter()` in the configuration. The default configuration of the OTLP exporter sends all telemetry to `http://localhost:4317` via gRPC, but it can be tailored for any destination:
 
 ```csharp
-.AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("172.17.0.10:1234"));
+.AddOtlpExporter(exporterOptions => exporterOptions.Endpoint = new Uri("your-custom-uri-here"));
 ```
 
 If you've implemented these changes, give yourself a pat on the back! Your application now logs into oblivion since nothing is listening on `http://localhost:4317`. Let's rectify this by launching the OpenTelemetry Collector and setting up suitable port forwarding on the container, enabling it to receive the telemetry data.
