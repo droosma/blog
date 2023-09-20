@@ -1,5 +1,5 @@
 ---
-title: "Manuel"
+title: "Manual"
 date: 2021-04-29 14:41:00+0000
 slug: "manual"
 layout: "single"
