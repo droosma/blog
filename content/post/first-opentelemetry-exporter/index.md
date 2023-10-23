@@ -11,14 +11,11 @@ tags:
     - OpenTelemetry
 ---
 
-Ever sins I discovered the joy that is [OpenTelemetry](https://opentelemetry.io/) for application monitoring and the abstraction it allows for using [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/)
-I have advocated for this way to working at several of my customers, and with great success.
+Ever since I discovered [OpenTelemetry](https://opentelemetry.io/) for application monitoring and the flexibility of the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/), I've been sharing its wonders with several of my clients – and they've had great experiences too.
 
-Having used the Collector for a while now, I have been more and more curious as to how it works under the hood. So I decided to try and create my own exporter to help me understand how it works.
-As I wanted to limit the complexity and focus on how it all works, I decided to create a simple exporter that just logs the received metrics to the console.
-I used this idea as an opportunity to accomplish two objectives at once, one, I have never touched [Go](https://go.dev/) before, and two learn more about the what the OpenTelemetry Collector actually does under the hood when sending it's received metrics to the configured destinations.
+Having used the Collector for some time, my curiosity about its inner workings grew. That's when I decided to create my own exporter to get a deeper understanding. To keep the focus on understanding the core mechanics, I crafted a basic exporter that doesn't process the received metrics, traces, or logs in any way. This project was a perfect chance for me to explore two things: diving into [Go](https://go.dev/), which was new for me, and uncovering more about the OpenTelemetry Collector's operations, especially how it sends metrics to its configured destinations.
 
-All the code in the post can be found here [https://github.com/droosma/first-opentelemetry-exporter](https://github.com/droosma/first-opentelemetry-exporter)
+For those keen to see the code, you can find it all [here](https://github.com/droosma/first-opentelemetry-exporter).
 
 ## Building a custom collector
 
