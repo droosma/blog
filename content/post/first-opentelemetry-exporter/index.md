@@ -52,7 +52,7 @@ receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.88.0
 ```
 
-> *Note: Working with a `devcontainer` for this project raised an `output_path` configuration issue. To modify it, refer to the `output_path` section below. [^1]*
+> **Note**: Working with a `devcontainer` for this project raised an `output_path` configuration issue. To modify it, refer to the `output_path` section below. [^1]
 
 Now, build the custom collector using:
 
@@ -251,26 +251,28 @@ service:
 
 After rebuilding the custom collector and initiating it once more, we're set to test our exporter.
 
-## Debugging the exporter
+## Debugging the Exporter
 
-Now the whole purpose of building your own version of the collector is to be able to debug your exporter. Now that we have a something to debug, let's see how we can do that.
+The primary reason for constructing a custom version of the collector is to facilitate debugging of your exporter. Now that we have a setup ready for debugging, let's delve into how it can be achieved.
 
-The first thing you should do is add `debug_compilation: true` to the `dist` section in the `otelcol-builder.yaml` file. This will include the debug symbols in the binary when you build your collector, which will allow us to debug the exporter.
+The initial step is to include `debug_compilation: true` in the `dist` section of the `otelcol-builder.yaml` file. This action ensures that the debug symbols are incorporated into the binary during the collector's build, paving the way for debugging the exporter.
 
 ```yaml
 dist:
   debug_compilation: true
 ```
 
-After some searching I found that you can debug your go application by using the [delve](https://github.com/go-delve/delve) as I have found a lot of resources on how to debug go applications using delve, I decided to go with this approach.
+After some exploration, I discovered that the [delve](https://github.com/go-delve/delve) tool can be used to debug Go applications. Given the plethora of resources available on using delve for Go debugging, I opted for this method.
 
-Now we can start the custom collector in debug mode by running the following command.
+You can kickstart the custom collector in debug mode with the following command:
 
 ```bash
 dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient --log exec /tmp/dist/otelcol-custom -- --config=config.yaml
 ```
 
-Next we will need to create a `launch.json` file in the `.vscode` folder. This file will tell Visual Studio Code how to attach to `delve` and debug the exporter.
+> **Note**: An unusual quirk I encountered during my debugging journey was with delve's termination process. Once delve is active, a simple `ctrl+c` doesn't suffice to exit. The workaround I employed was to initiate another terminal and run the command `killall dlv`. If anyone is aware of a more elegant solution to this, I'm eager to hear it!
+
+Subsequently, a `launch.json` file needs to be created within the `.vscode` directory. This file instructs Visual Studio Code on how to connect to `delve` and debug the exporter.
 
 ```json
 {
@@ -290,7 +292,7 @@ Next we will need to create a `launch.json` file in the `.vscode` folder. This f
 }
 ```
 
-Now all that's left is to go to the `Run and Debug` tab in Visual Studio Code and select `Connect to server` from the dropdown and click the play button. This will attach Visual Studio Code to the custom collector and you can now set breakpoints in your exporter on on `pushLogs`, `pushMetrics` or `pushTraces` functions and see the data trickle in.
+To wrap things up, navigate to the `Run and Debug` tab in Visual Studio Code. From the dropdown menu, select `Connect to server` and hit the play button. Visual Studio Code will now establish a connection with the custom collector. This enables you to set breakpoints within your exporter, specifically on the `pushLogs`, `pushMetrics`, or `pushTraces` functions, and observe incoming data in real-time.
 
 ## Conclusion
 
