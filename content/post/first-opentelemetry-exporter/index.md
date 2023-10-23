@@ -296,20 +296,20 @@ To wrap things up, navigate to the `Run and Debug` tab in Visual Studio Code. Fr
 
 ## Conclusion
 
-You should now have a working custom collector with a working exporter that you can debug. ofcourse this is just a walking skeleton of an exporter, but it should give you a good starting point to build your own exporter.
-for inspiration on what you can do, check out the receivers, exporters and processors in the wild, from the [OpenTelemtry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter) and [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter).
+By now, you should have a functional custom collector accompanied by a debuggable exporter. While the current setup offers a basic framework for an exporter, it establishes a robust foundation from which you can develop and expand. Building and debugging your own OpenTelemetry collector exporter not only deepens your understanding of the OpenTelemetry ecosystem but also empowers you to tailor monitoring solutions to your unique needs.
 
-If you like to have an example of the data that you can expect to receive in your exporter, you can check out [example JSON](https://opentelemetry.io/docs/specs/otel/protocol/file-exporter/#examples)
+For those seeking inspiration, delve into the vast array of receivers, exporters, and processors available in the wild, courtesy of the [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter) and [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter).
+
+For a glimpse into the kind of data your exporter might handle, here's an [example JSON](https://opentelemetry.io/docs/specs/otel/protocol/file-exporter/#examples).
 
 [^1]: changing the `output_path`
 
-    As I was annoyed that the `output_path` pointed to a location inside of the container, I tried to change it to a location on my local machine by changing it to `/workspaces/opentelemetry-embedding-exporter/otelcol-custom` but this did not work. Executing the build command resulted in the following error.
-
+    While setting up, I found it inconvenient that the `output_path` was directed to a location within the     container. In an attempt to redirect it to a local machine location, I set it as `/workspaces/    opentelemetry-embedding-exporter/otelcol-custom`. Unfortunately, this adjustment was met with an error     upon executing the build command:
+    
     ```bash
     Error: failed to compile the OpenTelemetry Collector distribution: exit status 1. Output:
     error obtaining VCS status: exit status 128
         Use -buildvcs=false to disable VCS stamping.
     ```
-
-    I'm sure it should be possible, but to again avoid a massive jack that needs shaving, I accepted it and moved on. 
-    If you know how to do this, please let me know.
+    
+    Although I believe there should be a way to make this work, I chose not to go down a troubleshooting     rabbit hole. If anyone has insights or solutions regarding this issue, I'm open to suggestions.
