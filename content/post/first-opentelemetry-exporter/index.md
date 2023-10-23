@@ -95,7 +95,7 @@ Finally, with the configuration set, execute the following to see logs, metrics,
 
 ## The exporter Code
 
-Now that we have a working custom collector, we can start working on our exporter. I started out by creating a new folder called `emptyexporter` in the root of my repository. In this folder I created a `go.mod` file, this file will tell Go that this is a module and will allow us to import the other modules needed. The basic `go.mod` file looks like this.
+Now that we've set up a working custom collector, it's time to dive into our exporter. I began by creating a new folder named `emptyexporter` in my repository's root. Inside this folder, I created a `go.mod` file. This file informs Go that we're dealing with a module and facilitates the import of other necessary modules. The foundational `go.mod` file is:
 
 ```go
 module github.com/droosma/emptyexporter
@@ -109,11 +109,11 @@ require (
 )
 ```
 
-The module name is usually the same as the repository name, this is not required but it makes it easier to import the module in other projects. in this case this name is not a valid repository name, but as we will not be publishing this module that's ok. Do make sure that the repo name matches folder on your local machine, as this is how Go will find the module.
+Typically, the module name mirrors the repository name. While this isn't a strict requirement, it simplifies module imports in other projects. In this instance, the name isn't an actual repository name. But since we won't be publishing this module, that's fine. However, ensure that the repo name aligns with the folder on your local machine, as Go uses this to locate the module.
 
-The `require` section tells Go what modules we need to import. The `go.opentelemetry.io/collector/component` module is needed to create the configuration, the `go.opentelemetry.io/collector/exporter` module is needed to create the exporter and the `go.opentelemetry.io/collector/pdata` module is needed to work with the different categories of telemetry or [signals](https://opentelemetry.io/docs/concepts/signals/).
+The `require` section lists the modules we need. The `go.opentelemetry.io/collector/component` module is essential for configuration creation, the `go.opentelemetry.io/collector/exporter` module aids in exporter creation, and the `go.opentelemetry.io/collector/pdata` module handles the various telemetry categories or [signals](https://opentelemetry.io/docs/concepts/signals/).
 
-Next we will need to create a `exporter.go` file in the `emptyexporter` folder. This file will contain the code for our exporter. The code for this file is pretty straight forward as the exporter will not really do much.
+Next, I crafted an `exporter.go` file within the `emptyexporter` folder. This file houses our exporter code. Given that our exporter won't be particularly complex, the code remains fairly straightforward:
 
 ```go
 package emptyexporter
@@ -146,11 +146,11 @@ func (s *emptyexporter) pushTraces(_ context.Context, td ptrace.Traces) error {
 }
 ```
 
-The `emptyexporter` struct is the actual exporter. The `pushLogs`, `pushMetrics` and `pushTraces` functions are the functions that will be called by the collector when it receives logs, metrics and traces respectively. As we are not doing anything with the received telemetry, these functions just return `nil`.
+The `emptyexporter` struct defines our exporter. The functions `pushLogs`, `pushMetrics`, and `pushTraces` will be invoked by the collector upon receipt of logs, metrics, and traces, respectively. As we aren't processing the received telemetry, these functions simply return `nil`.
 
-The `NewEmptyexporter` function is a factory function that will create a new instance of the `emptyexporter` struct.
+The function `NewEmptyexporter` serves as a factory function, generating a new instance of the `emptyexporter` struct.
 
-Now that we have the exporter code in place, we can register it with the collector. To do this we will need to create a `factory.go` file in the `emptyexporter` folder. This file will contain the code to register the exporter with the collector.
+With the exporter code ready, it's time to register it with the collector. This requires a `factory.go` file in the `emptyexporter` directory. This file contains the registration code:
 
 ```go
 package emptyexporter
@@ -215,10 +215,9 @@ func createDefaultConfig() component.Config {
 }
 ```
 
-The `NewFactory` function is a factory function that will create a new instance of the `exporter.Factory` struct with the `typeStr` as the type of the exporter and the `createDefaultConfig` function as the function to create the default configuration for the exporter. This function will return a new instance of the `Config` struct. As we don't have any configuration yet, it will just return an empty struct. The `NewFactory` function will also pass references to the `exporter.WithTraces`, `exporter.WithMetrics` and `exporter.WithLogs` functions to register the exporter with the collector for traces, metrics and logs. Each of these functions will in turn call the `createTracesExporter`, `createMetricsExporter` and `createLogsExporter` functions respectively. These functions will return a new instances of the `exporter.Traces`, `exporter.Metrics` and `exporter.LogExporter` structs respectively. Each of these internal factory methods will configure the exporter to use the `pushTraces`, `pushMetrics` and `pushLogs` functions of the `emptyexporter` struct respectively.
+The function `NewFactory` is our factory function, crafting a new instance of the `exporter.Factory` struct, complete with the `typeStr` as the exporter type and the `createDefaultConfig` function to produce the exporter's default configuration. Since our configuration is currently non-existent, it merely returns an empty struct. The `NewFactory` function also references the `exporter.WithTraces`, `exporter.WithMetrics`, and `exporter.WithLogs` functions to register the exporter with the collector for traces, metrics, and logs, respectively. Each of these functions, in turn, calls the respective internal factory methods, `createTracesExporter`, `createMetricsExporter`, and `createLogsExporter`.
 
-All that is left is to update the `otelcol-builder.yaml` file to include the `emptyexporter` module.
-In the exporter section add the following lines.
+The only task left is to refresh the `otelcol-builder.yaml` file to encompass the `emptyexporter` module. Within the exporter section, add:
 
 ```yaml
 exporters:
@@ -226,9 +225,9 @@ exporters:
     path: emptyexporter
 ```
 
-A version number of the module is required, but as we will not be publishing this module, it can be anything you want. The `path` is the path to the module on your local machine. As mentioned earlier, even though we specify the path to the module, Go will still look for the module in the repository with the same name as the module.
+While a module version is mandatory, any version will suffice since we aren't publishing this module. The `path` denotes the module's path on your machine. Remember, even if you specify the module's path, Go will still search for the module using the repository name identical to the module name.
 
-Next we update the `config.yaml` file to include the `emptyexporter` exporter.
+Lastly, we'll update the `config.yaml` file to include the `emptyexporter` exporter:
 
 ```yaml
 service:
@@ -250,7 +249,7 @@ service:
         - debug
 ```
 
-After we rebuild the custom collector and run it again, we should be ready to test our exporter.
+After rebuilding the custom collector and initiating it once more, we're set to test our exporter.
 
 ## Debugging the exporter
 
