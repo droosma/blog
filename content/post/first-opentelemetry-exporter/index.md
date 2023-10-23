@@ -17,11 +17,11 @@ Having used the Collector for some time, my curiosity about its inner workings g
 
 For those keen to see the code, you can find it all [here](https://github.com/droosma/first-opentelemetry-exporter).
 
-## Building a custom collector
+## Building a Custom Collector
 
-To be able to run, test and debug your custom exporter, you will need to build a custom collector. The OpenTelemetry documentation has a [great guide](https://opentelemetry.io/docs/collector/custom-collector/) on how to do this. But as this is my first stab at Go and growing more and more grumpy about the changes I have to subject my development machine to every time I want to try something new. I decided to take the [devcontainer](https://containers.dev/) route.
+If you're looking to run, test, and debug your custom exporter, you'll need to construct a custom collector. The OpenTelemetry documentation offers a [fantastic guide](https://opentelemetry.io/docs/collector/custom-collector/) on this. But, given that this was my maiden voyage into Go, and my increasing frustration with altering my development environment every time I experiment, I opted for the [devcontainer](https://containers.dev/) approach.
 
-the basic `devcontainer.json` is pretty straight forward.
+The fundamental `devcontainer.json` setup is rather straightforward:
 
 ```JSON
 {
@@ -32,14 +32,13 @@ the basic `devcontainer.json` is pretty straight forward.
 }
 ```
 
-As you can see I use the `postCreateCommand` to call an external script. This is because to be able to build the custom collector there are some dependencies that need to be satisfied.
-I could not get the commands included in the `postCreateCommand.sh` to run successfully inside of `devcontainer.json`, so in an attempt to limit the amount of jack shaving I would have to do to get this working, I decided to go with this approach. The downside of this approach is that when my editor, Visual Studio Code, detects a change to `devcontainer.json` it will offer to rebuild and relaunch the container. When you chose to put all your dependencies in a separate file like this you will have to manually rebuild the container.
+You'll notice I employ the `postCreateCommand` to invoke an external script. This is because, to build the custom collector, certain dependencies must be met. I faced issues running the commands within `postCreateCommand.sh` directly from `devcontainer.json`. To minimize troubleshooting, I chose this strategy. One drawback is that whenever Visual Studio Code detects modifications to `devcontainer.json`, it prompts to rebuild and restart the container. With dependencies in a separate file, manual container rebuilding is necessary.
 
-We also open up the default OpenTelemetry ports 4317 (gRPS) and 4318 (http), so we can send data to the custom collector from our application.
+We also unblock the default OpenTelemetry ports 4317 (gRPS) and 4318 (http), enabling data transmission from our application to the custom collector.
 
-The `postCreateCommand.sh` will install the `builder` and `delve` command, which we will use to build the custom collector and allow for [debugging](#debugging-the-exporter) respectively.
+`postCreateCommand.sh` will install the `builder` and `delve` commands, essential for building the custom collector and facilitating [debugging](#debugging-the-exporter).
 
-Next we will need a manifest file, this file will tell the builder what to build. I chose to store the file as `otelcol-builder.yaml` and placed it in the root of my repository.
+Next, a manifest file is required to guide the builder. I saved this as `otelcol-builder.yaml` in my repository's root.
 
 ```yaml
 dist:
@@ -53,17 +52,15 @@ receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.88.0
 ```
 
-> *As I'm using a `devcontainer` to work on this project, there is an issue with the configuration of `output_path`, if you want to change it check out the section on `output_path` below. [^1]*
+> *Note: Working with a `devcontainer` for this project raised an `output_path` configuration issue. To modify it, refer to the `output_path` section below. [^1]*
 
-you can now build the custom collector by running the following command.
+Now, build the custom collector using:
 
 ```bash
 builder --config=otelcol-builder.yaml
 ```
 
-This will create a `otelcol-custom` binary in the `/tmp/dist` folder. You can now run this binary to start the custom collector.
-But before we can run the custom collector we will need to create a configuration file for it. I chose to store this file as `config.yaml` in the root of my repository.
-I started out with just the `debug` exporter, as this is the easiest way to see if the custom collector is working.
+This produces a `otelcol-custom` binary in the `/tmp/dist` directory. Running this binary initiates the custom collector. However, it requires a configuration file first. I named this `config.yaml` and stored it next to the `otelcol-builder.yaml` in my repository's root. Starting with just the `debug` exporter makes it simpler to confirm the custom collector's functionality.
 
 ```yaml
 receivers:
@@ -90,7 +87,7 @@ service:
         - debug
 ```
 
-With this file in place, all that is left is to run the following command and take it for a spin, you should see the logs, metrics and traces being logged to the console.
+Finally, with the configuration set, execute the following to see logs, metrics, and traces displayed in the console:
 
 ```bash
 /tmp/dist/otelcol-custom --config=config.yaml
