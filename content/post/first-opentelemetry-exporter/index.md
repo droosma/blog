@@ -4,6 +4,7 @@ description: Understanding how the OpenTelemetry collector works by creating my 
 slug: first-opentelemetry-exporter
 date: 2023-10-23 00:00:00+0000
 original: true
+image: cover.png
 categories:
     - Development
 tags:
