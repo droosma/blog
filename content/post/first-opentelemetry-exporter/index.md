@@ -20,9 +20,9 @@ For those keen to see the code, you can find it all [here](https://github.com/dr
 
 ## Development Environment Setup
 
-Given the fact that we are going to be developing in Go and given my increasing frustration with having to subject my machine to a bunch of new tools every time I experiment with new tech, I have started favoring the use of [devcontainers](https://containers.dev/). This approach allows me to keep my machine clean and tidy while still having all the tools I need for development. If you're not familiar with devcontainers, I highly recommend you check them out.
+Considering my venture into Go development and my growing reluctance to clutter my machine with new tools each time I experiment, I've grown fond of [devcontainers](https://containers.dev/). This method keeps my machine neat while ensuring I have all the required development tools. If you haven't explored devcontainers yet, I urge you to do so.
 
-To get the environment setup the `devcontainer.json` setup is rather straightforward:
+The setup of the environment using `devcontainer.json` should look something like this:
 
 ```JSON
 {
@@ -33,28 +33,26 @@ To get the environment setup the `devcontainer.json` setup is rather straightfor
 }
 ```
 
-You'll notice I employ the `postCreateCommand` to invoke an external script. This is because, to create our collector exporter we need certain tools installed other than Go. 
-The `postCreateCommand.sh` file contains the following:
+I've utilized the `postCreateCommand` to trigger an external script since we require specific tools beyond Go to craft our collector exporter. The `postCreateCommand.sh` file contains the following:
 
 ```bash
 go install go.opentelemetry.io/collector/cmd/builder@latest
 go install github.com/go-delve/delve/cmd/dlv@latest
 ```
 
-The script should install the `builder` and `delve` commands. these are essential for building the custom collector and facilitating [debugging](#debugging-the-exporter).
+This script ensures the installation of the `builder` and `delve` commands, essential for building the custom collector and aiding in [debugging](#debugging-the-exporter).
 
-I faced issues running these commands directly from `devcontainer.json` inside the `postCreateCommand`. To minimize troubleshooting, I chose this strategy. One drawback is that whenever Visual Studio Code detects modifications to `devcontainer.json`, it prompts to rebuild and restart the container. With dependencies in a separate file, manual container rebuilding is necessary, but given that these are all the tools we need, it's not a big deal.
+I encountered challenges executing these commands directly from `devcontainer.json` within the `postCreateCommand`. To sidestep excessive troubleshooting, I adopted this approach. A minor inconvenience is that Visual Studio Code, upon detecting changes to `devcontainer.json`, suggests a container rebuild and restart. When dependencies are isolated in a separate file, manual container rebuilding becomes mandatory. However, considering these tools are all we need, it's a manageable trade-off.
 
-In the `forwardPorts` you will see I added ports 4317 (gRPS) and 4318 (http), as I wanted to use the oltp protocol for data transmission I added these ports to enable data transmission from our application to the custom collector.
+In the `forwardPorts`, you'll see ports 4317 (gRPS) and 4318 (http) are specified. As I intent to employ the oltp protocol for telemetry transmission, I added these ports, enabling data flow from our application to the custom collector.
 
 ## Building a Custom Collector
 
-To be able to run our custom exporter we will need to build a custom version of the OpenTelemetry Collector. This will allow us to run, test and debug the collector and the exporter that is part of it.
-The OpenTelemetry documentation offers a [fantastic guide](https://opentelemetry.io/docs/collector/custom-collector/) on this. But, as said, I prefer the `devcontainer` approach.
+In order to run our custom exporter, we must build a specialized version of the OpenTelemetry Collector. This enables the testing, debugging, and execution of both the collector and our custom exporter. While the OpenTelemetry documentation provides an [excellent guide](https://opentelemetry.io/docs/collector/custom-collector/) on this topic, I favor the devcontainer methodology for this project.
 
-OpenTelemetry offer a tool that allows us to easily build a custom collector. This tool is called [`builder`](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) and if you have followed along with the `devcontainer` setup, you should have it installed already.
+OpenTelemetry introduced a tool named [`builder`](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) to simplify the creation of a custom collector. Assuming you've set up the `devcontainer`` as described, this tool should already be installed on your environment.
 
-The builder uses a manifest file to know what to build. I saved this as OpenTelemetry collector builder: `otelcol-builder.yaml` in my repository's root.
+The builder utility requires a manifest file to direct its build process. I've named this file `otelcol-builder.yaml`[^1] and placed it in the root directory of my repository.
 
 ```yaml
 dist:
@@ -68,17 +66,17 @@ receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.88.0
 ```
 
-in this file, we define the name of the binary we want to build, the description, the output path, and the version of the collector we want to use. We also define the exporters and receivers we want to include in our custom collector. For now, we only need the [`debugexporter`](https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/debugexporter) a OpenTelemetry published exporter that writes the received telemetry to the console, and the [`otlpreceiver`](https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver) the published oltp protocol implementation allowing us to receive telemetry.
+Within this configuration, we specify the desired binary name, its description, the output directory, and the collector version. Additionally, we define which exporters and receivers to incorporate into our custom collector. At this stage, we're integrating the [`debugexporter`](https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/debugexporter)—an OpenTelemetry-provided exporter that relays telemetry to the console—and the [`otlpreceiver`](https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver/otlpreceiver), which implements the oltp protocol, allowing us to receive telemetry.
 
-> **Note**: Working with a `devcontainer` for this project raised an `output_path` configuration issue. To modify it, refer to the `output_path` section below. [^1]
+> **Note**: Working with a `devcontainer` for this project raised an `output_path` configuration issue. To modify it, refer to the `output_path` section below. [^2]
 
-Now, build the custom collector using:
+Build the custom collector using:
 
 ```bash
 builder --config=otelcol-builder.yaml
 ```
 
-the output should look something like this:
+The output should resemble something like this:
 
 ```bash
 vscode ➜ /workspaces/first-opentelemetry-exporter $ builder --config=otelcol-builder.yaml
@@ -92,7 +90,7 @@ vscode ➜ /workspaces/first-opentelemetry-exporter $ builder --config=otelcol-b
 2023-10-24T20:21:14.506Z        INFO    builder/main.go:102     Compiled        {"binary": "/tmp/dist/otelcol-custom"}
 ```
 
-And the result should be a `otelcol-custom` binary in the `/tmp/dist` directory. Running this binary initiates the custom collector. However, at this point it's just like any other OpenTelemetry Collector and it requires a configuration file in order to run. I named this `config.yaml` and stored it next to the `otelcol-builder.yaml` in my repository's root. Starting with just the `debug` exporter makes it simpler to confirm the custom collector's functionality. The skeleton `config.yaml` file is as follows:
+As a result, you'll find an `otelcol-custom` binary in the `/tmp/dist` directory. Launching this binary activates the custom collector. At this point, the custom collector operates like any other OpenTelemetry Collector and requires a configuration file. I've named this configuration `config.yaml` and placed it alongside `otelcol-builder.yaml` in the repository root. Starting with the debug exporter, it's easier to validate the custom collector's operation. A basic `config.yaml` looks like this:
 
 ```yaml
 receivers:
@@ -119,7 +117,7 @@ service:
         - debug
 ```
 
-Finally, with the configuration set, execute the following to see logs, metrics, and traces displayed in the console:
+To wrap things up, run the following command to view logs, metrics, and traces directly in the console:
 
 ```bash
 /tmp/dist/otelcol-custom --config=config.yaml
@@ -127,7 +125,7 @@ Finally, with the configuration set, execute the following to see logs, metrics,
 
 The output of that should look something like this:
 
-```bash	
+```bash
 vscode ➜ /workspaces/first-opentelemetry-exporter $ /tmp/dist/otelcol-custom --config=config.yaml
 2023-10-24T20:24:44.149Z        info    service@v0.88.0/telemetry.go:84 Setting up own telemetry...
 2023-10-24T20:24:44.150Z        info    service@v0.88.0/telemetry.go:201        Serving Prometheus metrics      {"address": ":8888", "level": "Basic"}
@@ -381,7 +379,8 @@ For those seeking inspiration, dig into the vast array of receivers, exporters, 
 
 For a glimpse into the kind of data your exporter might handle, here's an [example JSON](https://opentelemetry.io/docs/specs/otel/protocol/file-exporter/#examples).
 
-[^1]: changing the `output_path`
+[^1]: otelcol-builder is a acronym for OpenTelemetry Collector Builder
+[^2]: changing the `output_path`
 
     While setting up, I found it inconvenient that the `output_path` was directed to a location within the     container. In an attempt to redirect it to a local machine location, I set it as `/workspaces/opentelemetry-embedding-exporter/otelcol-custom`. Unfortunately, this adjustment was met with an error     upon executing the build command:
     
