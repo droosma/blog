@@ -4,6 +4,7 @@ description: "A back-end developer's reluctant journey into the front-end world 
 slug: back-end-dev-dives-into-blazor-tailwind
 date: 2023-10-25 00:00:00+0000
 original: true
+image: cover.png
 categories:
     - Development
 tags:
