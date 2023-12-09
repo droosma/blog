@@ -9,32 +9,40 @@ categories:
     - Development
 tags:
     - dotnet
+    - DDD
+    - Programming construct
 ---
 
-When working on software projects that are not side-projects, there are a few patterns I default to. While I try to evolve the implementation of these patterns over time, I find that the core problem they address remains the same, I have just never really found the one with the best balance of simplicity and flexibility. One of these patterns is the `Result` type. In this blog post I will try to explain the problem I am trying to solve, and the latest iteration of my solution. I will give you some background on the problem, and I will show you some of the previous iterations.
+When working on software projects destined for production, I often revisit strategies that have proven successful in the past. Among these, the Ports and Adapters pattern, also known as [Hexagonal architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)), stands out. In acknowledging the unpredictable nature of system evolution, I try to limit the blast radius of system changes by envisioning each port as an API gateway to a ["black-box"](https://en.wikipedia.org/wiki/Black_box) system. With this mindset, another awareness comes to the forefront—[Fallacies of Distributed Computing](https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing), particularly the first: _The network is reliable._ By combining these concepts, I aim to alert the consuming code to the possibility of failure without revealing too much implementation detail. This post will outline my journey through the various solutions I've implemented to address this architectural challenge.
 
 ## The problem
 
-For most of my software solutions I default to my interpretation of [Hexagonal architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)), I have some plans for a blog-post that will go into that, keep an eye out for that. In that architecture we work with ports and adapters, and we try to keep the core of our application free from any framework or library specific code. The Port describes the expected behavior an adapter needs to comply with. A very simple example of a port could be the following:
+Let's start with a simple port example. We have a port called `Users` that allows us to retrieve a user by a `UserId`. The interface would look something like this:
 
 ```csharp
 public interface Users
 {
-    User ById(UserId id);
+    User By(UserId id);
 }
 ```
 
-The goal is to push as much if not all implementation details to the adapter. But as you can imagine retrieving a user by a UserId can have a few different outcomes. The user might not exist, the adapter retrieving it might have an implementation error, or the infrastructure dependency the adapter represents might be unavailable. In all these cases we want to be able to steer the business flow and have the system behave in a predictable way. In the case of a "The user might not exist" the business code that we are writing might be perfectly ok with that and just create a new user, or it might need to error out the flow. In that case we could solve it simply by adjusting the interface to the following:
+The goal we set for ourselves is to convey to the consumer as much information as possible, without leaking implementation details. Looking at this port a consumer can make a few assumptions, if I give it a `UserId` I will receive a `User`, but what happens when I give it a `UserId` that does not exist? Or what happens when "the network is not reliable"? Constraining myself to only reading this interface, and treating it as a black-box, The consumer of this interface has no way of knowing what can or will happen.
+
+The first thing we can do is make the interface a bit more explicit, and add a `Try` method to the interface. This would look something like this:
 
 ```csharp
 public interface Users
 {
-    User ById(UserId id);
-    User? TryById(UserId id);
+    User By(UserId id);
+    User? TryBy(UserId id);
 }
 ```
 
-Personally I am not a big fan of this solution, it is very explicit, which is nice, but it also increases the complexity of the interface.
+This addresses the: "but what happens when I give it a `UserId` that does not exist?" question, at the cost of making the interface a bit more complex, and assuming that the consumer uses the correct method, in the correct context. But it does not address the: "what happens when the network is not reliable?" question.
+
+@@@ 
+the flow from "the problem" to "possible solutions" feels off, I'm looking for either integrate the possible solutions section into the problem section. Or try to expand on the problem section. and flow into possible solutions from there.
+@@@
 
 ## Possible solutions
 
@@ -109,6 +117,8 @@ internal class PostgreSQLUsers : Users
 ```
 
 The way I see it, the only thing this approach brings to the table is that it is explicit about the fact that a function might return nothing, so we could get away with not having a `User? TryById(UserId id);`. But it does not solve any of the other problems.
+
+### Callback based flow control
 
 ### Result based flow control
 
@@ -214,37 +224,9 @@ public record Result<T> : Result
 
 With this implementation we found that sometimes people would still assume success and use the Value property without checking the IsSuccess or IsFailure property. So to prevent runtime errors we added the ValueNotVerifiedException. This confronted a developer immediately during initial run of the code, usually a unit test. This implementation worked well for us for a while, but the implementation is not very flexible. Adding new states to the Result type resulted in a lot of ugly implementation refactoring.
 
-#### OneOf
-
-Another great NuGet package we came across was [OneOf](https://www.nuget.org/packages/OneOf/). This package is quit a bit more flexible and explicit than the CSharpFunctionalExtensions package. And while the infectious issue we had with CSharpFunctionalExtensions is still there, we found it a lot more manageable.
-
-An implementation of the previous example using OneOf would look something like this:
-
-```csharp
-public record Failure;
-public record NotFound;
-
-public interface Users
-{
-    OneOf<User, NotFound, Failure> User ById(UserId id);
-}
-```
-
-I really like the explicit nature of this implementation, it is a bit verbose, but it is very clear what the interface is trying to communicate.
-The consumer of this interface would look something like this:
-
-```csharp
-var result = _users.ById(id);
-result.Match(
-    user => // success, we have a user do something with the user,
-    notFound => // handle the not found case,
-    failure => // handle the failure case
-);
-```
-
 ### Second Custom implementation
 
-While I quite like the OneOf implementation, I still wanted to try my hand at creating my own implementation.
+A second attempt at a custom implementation of the Result type inspired by some of the Discriminated Union patterns, is a bit more flexible.
 
 ```csharp
 public interface Result
@@ -272,6 +254,33 @@ public record Failed<T> : Failed, Result<T>
 ```
 
 This implementation is not very battle hardened quite yet
+
+#### OneOf
+
+As it often is the case, I'm not the only one trying to solve this problem. And there is always someone smarter than me that has already solved it. As is the case with [OneOf](https://www.nuget.org/packages/OneOf/). This package is quit a bit more flexible and explicit than the CSharpFunctionalExtensions package.
+
+An implementation of the previous example using OneOf would look something like this:
+
+```csharp
+public record Failure;
+public record NotFound;
+
+public interface Users
+{
+    OneOf<User, NotFound, Failure> User ById(UserId id);
+}
+```
+
+I really like the explicit nature of this implementation, it is a bit verbose, but it is very clear what the interface is trying to communicate. The packages also introduces a `Match` function that allows you to handle the different cases in a very clean and explicit way. Using the interface would look something like this:
+
+```csharp
+var result = _users.ById(id);
+result.Match(
+    user => // success, we have a user do something with the user,
+    notFound => // handle the not found case,
+    failure => // handle the failure case
+);
+```
 
 ## Conclusion
 
