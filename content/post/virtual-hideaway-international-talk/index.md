@@ -12,8 +12,9 @@ tags:
     - Presentations
 ---
 
-On 1st February 2024, I had the honor of speaking at the [Cloud Technology Townhall Tallinn 2024 (CTTT2024)](https://cloudtechtallinn.com/2024-schedule/). This was my first international talk, and I would like to share with you how I got there. I'm writing this for myself, to reflect on the journey, and to remind myself of the lessons I learned. But I hope that it can also inspire others to take the plunge and share their knowledge with the world.
-In this article I'm going to refer to [Matthijs van der Veer](https://www.linkedin.com/in/matthijsvanderveer) a lot, he was a big part of the journey and I'm very grateful for his help. If you see his name pop up when visiting a conference yourself, I highly recommend you go see his talk, he is a great speaker and has a lot of knowledge to share.
+On February 1, 2024, I had the honor of speaking at the [Cloud Technology Townhall Tallinn 2024 (CTTT2024)](https://cloudtechtallinn.com/2024-schedule/). This marked my first international presentation, and I'm eager to share the path that led me there. I write this reflection for myself—to catalog the journey and the lessons it bestowed upon me. Yet, I also hope it serves to inspire others to step forward and share their insights with the world.
+
+In this article, I'll frequently mention [Matthijs van der Veer](https://www.linkedin.com/in/matthijsvanderveer). His guidance was instrumental throughout this journey, and I am deeply appreciative of his support. Should you encounter Matthijs at a conference, I wholeheartedly recommend attending his session. He's not only an exceptional speaker but also a wealth of knowledge.
 
 ## The road to Tallinn
 
