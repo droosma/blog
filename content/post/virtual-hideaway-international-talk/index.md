@@ -16,6 +16,8 @@ On February 1, 2024, I had the honor of speaking at the [Cloud Technology Townha
 
 In this article, I'll frequently mention [Matthijs van der Veer](https://www.linkedin.com/in/matthijsvanderveer). His guidance was instrumental throughout this journey, and I am deeply appreciative of his support. Should you encounter Matthijs at a conference, I wholeheartedly recommend attending his session. He's not only an exceptional speaker but also a wealth of knowledge.
 
+As I reflect on the journey that led me to the stage in Tallinn, it's clear that this adventure began not with a single step, but with a transformative period of growth and exploration in my professional life.
+
 ## The road to Tallinn
 
 In consulting, moments often arise when you find yourself between assignments. During these periods, my employer encourages us to use the time to enhance our professional authority. In mid-2023, as the influence and potential of Generative AI (GenAI) for our clients became increasingly evident, I was encouraged to delve into this topic, especially given its rising interest among our customers. One area that stood out was Retrieval Augmented Generation (RAG), particularly relevant since GPT-3.5 was limited to only 4k tokens at the time, making RAG a promising technique for short-term applications. Eager to understand the technology firsthand, a colleague and I, both awaiting new projects, began our exploration. Our journey into research and experimentation helped us gain a deeper understanding. Upon sharing my insights with my manager, the inevitable question I had anticipated was posed: "When are you doing an XKE on this?" XKE, or [Xebia Knowledge Exchange](https://xke.xebia.com/faq/), is our biweekly internal "conference" where we explore topics of personal interest with our peers.
@@ -43,6 +45,8 @@ When it was our turn to present, I went back to an old trick of mine, trying to 
 That evening, at the speaker dinner, the conference organizer came over to tell us that quite a few people had praised our session. Some attendees even went the extra mile to fill out feedback forms, and the comments were really encouraging. Even though it's tough for me to fully bask in the outcome, I can't help but feel proud. I managed to pull off something that would've blown my 12-year-old mind, and I didn't drop the ball.
 
 ## Why do this?
+
+After recounting the steps of my journey to and experiences in Tallinn, it's natural to ponder the deeper motivations behind such a venture. Why embark on this path, filled with challenges and growth opportunities alike?
 
 As you might have realized from my story, embarking on this journey was a significant departure from my comfort zone, and honestly, it’s something I couldn’t have imagined doing just two years ago.
 
