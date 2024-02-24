@@ -225,9 +225,9 @@ Although I haven't yet implemented `Respawn` in a production environment, its po
 
 ## Closing thoughts
 
-While I have been very happy with `Testcontainers` I have heard from others that it can be a bit flaky. I have not experienced this myself but it is worth mentioning. I suspect the flakiness comes from the relative instability of Docker, in my case on Windows, but I hear similar stories from people using it on Mac.
+While my experience with Testcontainers has been overwhelmingly positive, it's important to acknowledge feedback from the community indicating occasional instability. I haven't personally encountered these issues, but the concerns merit attention. The reported flakiness may stem from Docker's behavior, particularly on Windows, although similar observations have been made by macOS users as well.
 
-Even with these optimizations, performance is still a thing. While I find the compromise worth it for the peace of mind that I get from knowing when it's green, it's actually green. And the code will work in production. It does require a bit of extra attention to make sure you are scoping your tests correctly and not using it when behavior from the database is not relevant for the test assertion.
+Despite these challenges, the performance trade-offs involved in using Testcontainers are, from my perspective, justified by the confidence it provides in our testing process. The assurance that passing tests correlate with real-world, production-ready code is invaluable. However, this does necessitate careful test design to ensure we're leveraging Testcontainers optimally. It's essential to scope tests accurately, reserving the use of Testcontainers for scenarios where database interactions are critical to the test's validity. This approach helps mitigate performance concerns while maintaining the integrity and relevance of our test suite.
 
 ## <span id="why">Why?</span>
 
