@@ -16,28 +16,28 @@ tags:
     - PostgreSQL
 ---
 
-You hear it more and more, stop testing you database logic with an in-memory database. It's not the same as the real thing. And I have agreed with this for a long time. But actually find a way to do it has been a bit of a process. Since the advent of Docker, every time I had to test something with a database, I would look longingly at it, try to make it work, and then give up and resort to either complicated real database setups or in-memory versions. But with time, tooling has come a long way and, and I'm finally at a point to start recommending [`Testcontainers`](https://testcontainers.com/) for testing your database logic.
+Around the internet, you read it more and more: stop testing your database logic with an in-memory database. It's not the same as the real thing. I've agreed with this perspective for quite some time, yet finding a practical way to implement this advice has been somewhat challenging. Since Docker's advent, whenever I needed to test something involving a database, I would gaze at Docker with hope, attempt to utilize it, and then, facing difficulties, revert to either complex real database setups or in-memory alternatives. However, as tooling has evolved, I've reached a point where I can confidently recommend [Testcontainers](https://testcontainers.com/) for testing your database logic.
 
-This article grew a bit longer than I expected, so I have split it up into the following sections:
+This article turned out longer than anticipated, so I've divided it into the following sections:
 
-- [How?](#how)
-  Not familiar with `Testcontainers`? I'll show you how to set it up and use it in your tests.
-- [Optimization](#optimization)
-  The original reason I started writing this article, when using `Testcontainers` you'll run into some performance issues, and some isolation issues. Here I'll show you my approach to solving these issues.
-- [Why?](#why)
-  There are lot's are articles online that will tell you to stop using in-memory databases for testing, so lot's of good content out there. In this section I have tried to give you my reasoning for why I think you should.
+- [**How?**](#how)
+  Not familiar with `Testcontainers`? I'll guide you through setting it up and integrating it into your tests.
+- [**Optimization**](#optimization)
+  The initial motivation for this article was the performance and isolation challenges encountered while using `Testcontainers`. I'll share my strategies for addressing these issues.
+- [**Why?**](#why)
+  Numerous articles online advise against using in-memory databases for testing, offering plenty of sound arguments. In this section, I'll share my perspective on why I support this view.
 
-All the code used in this post can be found [here](https://github.com/droosma/docker-database-testing-journey), where I'm using the following tool stack:
+All code examples in this post are available [here](https://github.com/droosma/docker-database-testing-journey), utilizing the following tool stack:
 
 - Testing framework: [xUnit](https://xunit.net/)
-- [Object-Relational Mapping](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping): [Dapper](https://www.learndapper.com/)
+- Object-Relational Mapping: [Dapper](https://www.learndapper.com/)
 - Assertion framework: [FluentAssertions](https://fluentassertions.com/)
 
-All of these can be replaced by other tools, these are just the once I keep falling back on. If you have suggestions for tooling that you are using and feel is superior, or you feel I'm missing an important detail, please feel free to comment on the post. Always happy to learn new things.
+All of these can be replaced by other tools; these are just the ones I keep falling back on. If you have suggestions for tooling that you are using and feel is superior, or if you feel I'm missing an important detail, please feel free to comment on the post. I'm always happy to learn new things.
 
 ## How?
 
-To keep the explanation as simple as I could get it, I'm going to be using the following C# [`Repository`](https://www.geeksforgeeks.org/repository-design-pattern/) as my [`System under Test (SUT)`](https://en.wikipedia.org/wiki/System_under_test)
+To simplify the explanation, I will use the following C# [`Repository`](https://www.geeksforgeeks.org/repository-design-pattern/) as my [`System under Test (SUT)`](https://en.wikipedia.org/wiki/System_under_test):
 
 ```csharp
 public class PostgresUsers(Func<ValueTask<NpgsqlConnection>> connectionFactory)
@@ -50,11 +50,11 @@ public class PostgresUsers(Func<ValueTask<NpgsqlConnection>> connectionFactory)
 }
 ```
 
-A simple Users repository that gets a PostgreSQL connection factory injected, with a `NameBy` method that queries the users table for the name of a user with a given id.
+This Users repository receives a PostgreSQL connection factory as constructor parameter. It contains a `NameBy` method to query the users table for a user's name based on their ID.
 
-In this example I'm going to use a PostgreSQL database though the [`Testcontainers.PostgreSql`](https://testcontainers.com/modules/postgresql/) package, but there are loads of other databases supported by `Testcontainers` though specific packages or just by configuring the container yourself.
+For this example, I'll use a PostgreSQL database via the [`Testcontainers.PostgreSql`](https://testcontainers.com/modules/postgresql/) package. Testcontainers supports a variety of databases through specific packages or by configuring the container manually.
 
-Let's write a test for `NameBy` method. We start by configuring a test class to use the `Testcontainer`
+Let's create a test for the `NameBy` method. We begin by setting up a test class to utilize Testcontainer:
 
 ```csharp
 public class PostgresUsersTests : IAsyncLifetime
@@ -70,9 +70,9 @@ public class PostgresUsersTests : IAsyncLifetime
 }
 ```
 
-We start with creating an instance of `PostgreSqlContainer`, a wrapper around the `ContainerBuilder` from `Testcontainer` provided by `Testcontainers.PostgreSql`. As the startup of the docker image of in this case `PostgreSQL` can take a little while, especially if it's the first time running this image and it still needing to be pulled from the image repository. I'm using the `IAsyncLifetime` interface to facilitate the async setup and teardown test lifecycle.
+We initiate a `PostgreSqlContainer` instance, leveraging the `Testcontainers.PostgreSql`'s `ContainerBuilder`. Since starting the Docker image (in this case, PostgreSQL) can take some time—especially on the first run, when the image needs to be downloaded—I use the `IAsyncLifetime` interface for asynchronous setup and teardown of the test lifecycle.
 
-Now that we have a running `PostgreSQL` instance, we can write our test.
+Now, with a running PostgreSQL instance, we can proceed with our test:
 
 ```csharp
 [Fact]
@@ -94,13 +94,13 @@ public async Task NameBy_WhenUserExists_ReturnsName()
 }
 ```
 
-Now that we are in a test method, xUnit will have completed the `InitializeAsync` which started the `PostgreSQL` container. Which should give us access to the connection string of the running `PostgreSQL` instance, while you can configure it, by default it randomizes the port.
+After completing the `InitializeAsync` method, which starts the PostgreSQL container, we have a connection string to the active PostgreSQL instance. By default, it randomizes the port.
 
-Next we create an connection factory the way our SUT expects it by configuring a `NpgsqlDataSource` with the connection string and then configure the factory to return a open `NpgsqlConnection` with the `OpenConnectionAsync` method every time the factory is invoked.
+Next, we configure a connection factory as required by our SUT, using a `NpgsqlDataSource` configured with the connection string. This factory is designed to return an open `NpgsqlConnection` via the `OpenConnectionAsync` method upon each invocation.
 
-Seeing as we still only have a database container running a fresh and clean instance of `PostgreSQL`, we need to initialize it by creating a table and insert a user. We do this by creating a connection with the connection factory and then executing the SQL to create the table and insert a user that should match our `Act` of the often used `Arrange-Act-Assert` test pattern.
+Since we have a fresh instance of PostgreSQL running in a container, we need to initialize it by creating a users table and inserting a user record. This setup matches the "Arrange" step of the common "Arrange-Act-Assert" testing pattern.
 
-If we run the test now, we should see it pass. And we have successfully tested our database logic with a real database.
+Running this test should result in a pass, demonstrating successful database logic testing with a real database environment.
 
 ## <span id="optimization">Optimization</span>
 
