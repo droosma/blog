@@ -219,9 +219,9 @@ Despite the effectiveness of this solution, it's not without its drawbacks. I've
 
 ### Bonus: Respawn
 
-In my attempt to streamline the setup of the tests, I have found a package that can help with a faster initialization and cleanup of the database [`Respawn`](https://github.com/jbogard/Respawn) I have not actually used it in production, but the gist of it is that it will reset the data in the database intelligently, so instead of dropping the databases / tables and re-creating them between tests you can just reset the data that has been created.
+In my quest to refine the testing setup, I've discovered a promising tool named [`Respawn`](https://github.com/jbogard/Respawn). This package offers an innovative solution for rapid database initialization and cleanup. Unlike traditional methods that involve dropping and recreating databases or tables between tests, `Respawn` intelligently resets only the data that was added during tests. This approach could significantly reduce the overhead associated with test database management, streamlining the entire testing process.
 
-When I have more experience with it, I will write a follow-up post about it.
+Although I haven't yet implemented `Respawn` in a production environment, its potential for enhancing test efficiency is clear. I plan to integrate this tool into our testing workflow and closely monitor its impact. Once I've gathered sufficient insights and experience, I look forward to sharing a detailed follow-up post.
 
 ## Closing thoughts
 
