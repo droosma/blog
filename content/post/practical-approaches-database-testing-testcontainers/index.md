@@ -231,32 +231,40 @@ Despite these challenges, the performance trade-offs involved in using Testconta
 
 ## <span id="why">Why?</span>
 
-I promised to explain why I think you should stop using in-memory databases for testing, and now that we go the how out of the way, I'll try to give you some insight into my reasoning.
+I've committed to explaining why in-memory databases may not be the best choice for testing. Having discussed the methodology, let's dive into the rationale behind this perspective.
 
-There are a lot of opinions on this subject, so I'm going to contain myself to my own experiences and the arguments I have heard from others.
+Given the wide range of opinions on this matter, I'll focus on my experiences and the insights I've gathered from discussions with peers. This approach ensures a narrative grounded in practical encounters and shared viewpoints.
 
-### Reasons that I have run into
+### Encountered Challenges
 
 - **Differences in SQL Dialects**
-I have run into this a few times. When using something like [SQLite](https://system.data.sqlite.org/index.html/doc/trunk/www/index.wiki) there are some differences in the SQL dialect that make it impossible to test your logic without changing your code. And for me that's a red-flag if I ever saw one.
-- **Transaction Behavior**
-This is quite similar to the previous point, but I feel it important to mention separately. As transactional behavior might be outside of the scope of a single query or method you are testing, SQLite does not support nested transactions for example.
-- **Data Types and Precision**
-Have had this happen a few times, the SQLite database is created but as it does not support the same data types as the database you are using in production, you change the column type to the closes match and move on. You test your logic and everything seems fine. Running it in production and see the exceptions roll in. PostgreSQL is enforcing the precision of the column, and you are receiving data that does not fit in the column.
-- **Migration and Schema Changes**
-Working with a team that has a clean workflow for database migration, including up and down scripts. But given SQLite's limitations, had to introduce two problems, one write SQLite specific migrations and two, could not run the actual production migrations. So I changed the tests to use a real database, these migrations exploded. They never ran the down migrations and there were errors in it.
-- <span id="sense_of_security">**False Sense of Security**</span>
-This is one of the most scary ones, as it's very hard to detect and counteract. You are writing tests, you might catch a mistake or two, but as examples above show, you are not testing the same logic as you are using in production. So you are not getting the same coverage as you are hoping for.
+Encountering discrepancies in SQL dialects, notably with [SQLite](https://system.data.sqlite.org/index.html/doc/trunk/www/index.wiki), has been a recurring issue. These differences often necessitate code alterations for testing purposes, which I view as a significant concern.
 
-### Arguments against it
+- **Transaction Behavior**
+Similar to dialect differences, transactional behavior varies significantly. For instance, SQLite's lack of support for nested transactions can limit the scope of tests, affecting their reliability.
+
+- **Data Types and Precision**
+Issues arise when SQLite does not support the same data types as the production database, leading to modifications that appear to work until real-world data reveals discrepancies. PostgreSQL's strict enforcement of data precision has been a particular challenge, highlighting the risks of assuming compatibility.
+
+- **Migration and Schema Changes**
+Collaborating on a project with a robust database migration workflow, including comprehensive up and down scripts, revealed SQLite's shortcomings. The necessity to devise SQLite-specific migrations and the inability to execute real production migrations presented significant challenges. This prompted a shift to using a real database for testing. However, this transition unveiled numerous issues: migrations that had never been tested for rollback failed, exposing errors that had gone undetected.
+
+- <span id="sense_of_security">**False Sense of Security**</span>
+Perhaps the most concerning issue is the false confidence that tests can provide. The differences between testing and production environments mean you might not be thoroughly testing your application's logic, leading to overlooked flaws.
+
+### Considerations Against Discontinuing In-Memory Databases
 
 - **Speed of Execution**
-Yes, in memory databases are faster than real databases, still slow though. And after you have tried the approach I'm advocating here, and still find them insufferably slow. Than it's not going to be easy, but I would suggest taking a step back from your tests and making sure they are really giving you what you are hoping for. See [_False Sense of Security_](#sense_of_security).
+Yes, in-memory databases are quicker than their physical counterparts but can still be slow. If, after implementing the approach I recommend, you find the performance intolerably sluggish, it may be challenging. However, I advise revisiting your testing strategy to confirm it delivers the intended benefits without fostering a [_False Sense of Security_](#sense_of_security).
+
 - **Simplicity and Ease of Configuration**
-I have always found this a bit of a weird argument, when ever I need to change code to be able to test it, I feel dirty. And working with an in-memory database is always a little different than the way a real database works, always having to change things to make it work.
+The argument that in-memory databases simplify testing doesn't sit well with me. Altering code just to facilitate testing feels fundamentally wrong, especially when such modifications diverge from production realities.
+
 - **Resource and Dependency Reduction**
-This is probably my observation bias. But I use [Ports and Adapters](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)) a lot. So when I'm testing logic surrounding my persistence I always have to have a database dependency. Both In-Memory and real represent resources and dependencies, getting either to work requires effort.
+My preference for the [Ports and Adapters](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)) pattern might introduce bias, but testing database-related logic inevitably introduces dependencies, whether in-memory or real. Both approaches demand effort to integrate effectively.
+
 - **Isolation from External Systems**
-It's not like your system is actually isolated from the external system. You are using a database in production. Acting like the database is always there and always working is not going to help you. I would argue getting your tests to behave consistency against a real database is going to help you do the same in production.
+The idea of complete isolation from external systems is a myth, particularly when a database is integral to production. Ensuring tests accurately reflect real database interactions offers more reliability and consistency in production environments.
+
 - **Avoiding Licensing and Cost Issues**
-This is a valid point, although I personally feel every database provider needs to have a free tier for specifically this reason, reality is that this is not always the case. The smart ass in me would say, time to look at a different database provider 😉.
+Licensing and operational costs are legitimate concerns. Ideally, database providers would offer a free tier to mitigate these issues, but this isn't always the case. If costs become prohibitive, it may be worth exploring alternatives.
