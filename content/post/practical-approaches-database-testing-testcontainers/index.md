@@ -4,7 +4,7 @@ description: "This blog post explores the benefits of using Testcontainers for d
 slug: practical-approaches-database-testing-testcontainers
 date: 2024-02-24 00:00:00+0000
 original: true
-image: cover.png
+image: cover.webp
 categories:
     - Development
 tags:
@@ -16,14 +16,14 @@ tags:
     - PostgreSQL
 ---
 
-Around the internet, you read it more and more: stop testing your database logic with an in-memory database. It's not the same as the real thing. I've agreed with this perspective for quite some time, yet finding a practical way to implement this advice has been somewhat challenging. Since Docker's advent, whenever I needed to test something involving a database, I would gaze at Docker with hope, attempt to utilize it, and then, facing difficulties, revert to either complex real database setups or in-memory alternatives. However, as tooling has evolved, I've reached a point where I can confidently recommend [Testcontainers](https://testcontainers.com/) for testing your database logic.
+Around the internet, you read it more and more: stop testing your database logic with an in-memory database. It's not the same as the real thing. I've agreed with this perspective for quite some time, yet finding a practical way to implement this advice has been somewhat challenging. Since Docker's advent, whenever I needed to test something involving a database, I would gaze at Docker with hope, attempt to utilize it, and then, facing difficulties, revert to either complex real database setups or in-memory alternatives. However, as tooling has evolved, I've reached a point where I can confidently recommend [`Testcontainers`](https://testcontainers.com/) for testing your database logic.
 
 This article turned out longer than anticipated, so I've divided it into the following sections:
 
 - [**How?**](#how)
-  Not familiar with `Testcontainers`? I'll guide you through setting it up and integrating it into your tests.
+  Not familiar with Testcontainers? I'll guide you through setting it up and integrating it into your tests.
 - [**Optimization**](#optimization)
-  The initial motivation for this article was the performance and isolation challenges encountered while using `Testcontainers`. I'll share my strategies for addressing these issues.
+  The initial motivation for this article was the performance and isolation challenges encountered while using Testcontainers. I'll share my strategies for addressing these issues.
 - [**Why?**](#why)
   Numerous articles online advise against using in-memory databases for testing, offering plenty of sound arguments. In this section, I'll share my perspective on why I support this view.
 
