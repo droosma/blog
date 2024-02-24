@@ -104,9 +104,9 @@ Running this test should result in a pass, demonstrating successful database log
 
 ## <span id="optimization">Optimization</span>
 
-The above example will work, but fall's apart when you have more than one test. As the `PostgreSQL` container is started for every test. This is not a problem for a small amount of tests, but as the amount of tests grow, the time it takes to run them will grow as well. So we can optimize this by starting the container once for all tests in the test class. xUnit has a feature for shared context called `Class Fixtures` that we can use for this.
+The initial example is functional but becomes inefficient when multiple tests are involved, as it starts the PostgreSQL container for each test. This isn't an issue with a small test suite, but as the number of tests increases, so does the total test execution time. To optimize, we can start the container once for all tests within a test class, using xUnit's `Class Fixtures` for shared context.
 
-We take the original `PostgresUsersTests` class and change it to the following:
+Here's how we adapt our `PostgresUsersTests` class:
 
 ```csharp
 public class PostgreSQLFixture : IAsyncLifetime
@@ -131,9 +131,9 @@ public class PostgreSQLFixture : IAsyncLifetime
 }
 ```
 
-As this class is going to function as our tests shared context, we have moved out some of the boilerplate code from the test, `Class Fixtures` feature change the way xUnit's test lifecycle works. It change the default behavior of calling `InitializeAsync` on the test class once for each test, it will now only execute this once for all the tests.
+This class can now function as a shared context for our tests, moving some common setup code outside individual test methods. xUnit's `Class Fixtures` alter the test lifecycle, executing `InitializeAsync` once for all tests in the class, rather than on a per-test basis.
 
-We can now change the `PostgresUsersTests` class to use the `PostgreSQLFixture` as a shared context.
+We then adapt the `PostgresUsersTests` class to employ `PostgreSQLFixture`:
 
 ```csharp
 public class PostgresUsersTests(PostgreSQLFixture fixture) : IClassFixture<PostgreSQLFixture>
@@ -152,7 +152,7 @@ public class PostgresUsersTests(PostgreSQLFixture fixture) : IClassFixture<Postg
 }
 ```
 
-By implementing the `IClassFixture<T>` interface xUnit will inject an instance of `PostgreSQLFixture` into the test class. This instance will be initialized before starting execution of any of the tests inside the test class and disposed after all the tests have been executed. Using this approach introduces a small problem though, as the `PostgreSQLFixture` is shared between all the tests in the test class, it also means that our database tests are no longer isolated from each other. We can see this in action by adding another test to the `PostgresUsersTests` class.
+Implementing `IClassFixture<T>`, xUnit injects an instance of `PostgreSQLFixture` into the test class, initializing it before any tests run and disposing of it afterward. However, this introduces potential issues with test isolation, as seen when adding another test that conflicts due to shared database state:
 
 ```csharp
 [Fact]
@@ -168,9 +168,9 @@ public async Task NameBy_WhenUserDoesNotExists_ReturnsNull()
 }
 ```
 
-By inserting a user with the same id as the previous test, we can see that the second test will fail with a unique constraint violation.
+Inserting a user with the same ID as in the previous test could lead to a `duplicate key value violates unique constraint "users_pkey"` error.
 
-We can work around this by introducing a `Transaction` and just rolling back the transaction after each test. This will give us the isolation we need, but the reason we are using a real database is to test the actual behavior of our database logic. So we can't just roll back the transaction, as we would not be testing the actual behavior of our database logic. We can however use another feature of xUnit, `Collection Fixtures`.
+While introducing transactions and rolling them back after each test could provide the necessary isolation, this method doesn't align with our objective of testing the database logic under real conditions. Transactions that are rolled back don't fully exercise the database's behavior as they would operate in a live environment. This is why, despite the potential for isolation they offer, relying solely on transactions isn't ideal for our purposes. Instead, we leverage xUnit's `Collection Fixtures` for a more suitable approach.
 
 ```csharp
 [CollectionDefinition(nameof(PostgreSQLFixtureCollection), DisableParallelization = true)]
@@ -179,9 +179,9 @@ public class PostgreSQLFixtureCollection : ICollectionFixture<PostgreSQLFixture>
 }
 ```
 
-We start by creating a `PostgreSQLFixtureCollection` class that implements the `ICollectionFixture<T>` interface. We mark it with the `CollectionDefinition` attribute a marker used by xUnit to identify which shared context to use for a test class. We also disable parallelization, as we don't want tests that use the same shared context to run in parallel, as this will cause the isolation issue we experienced.
+We begin by defining a `PostgreSQLFixtureCollection` class, implementing the `ICollectionFixture<T>` interface. It's annotated with the `CollectionDefinition` attribute, which xUnit uses to identify the shared context for test classes. To ensure tests within this shared context do not run in parallel—thus avoiding isolation problems—we disable parallelization with this attribute. This setup is crucial for maintaining test integrity by preventing concurrent execution that could lead to interference among tests sharing the same database instance.
 
-Next we change the `PostgresUsersTests` class one more time to the following.
+Finally, we adjust the `PostgresUsersTests` class:
 
 ```csharp
 [Collection(nameof(PostgreSQLFixtureCollection))]
@@ -213,11 +213,9 @@ public class PostgresUsersTests(PostgreSQLFixture fixture) : IAsyncLifetime
 }
 ```
 
-We start by adding the newly created `Collection` attribute to the test class, and you might have noticed, we have taken a step back, as we are back to using `IAsyncLifetime` this time we use it to initialize and dispose the table we are using for our tests, as we still want to have isolation between our tests. We can now remove this database initialization from the `PostgreSQLFixture`.
+By utilizing the `Collection` attribute on our test class, we designate it as part of the shared context defined by the `PostgreSQLFixtureCollection`. This arrangement ensures that all tests within this collection utilize the same `PostgreSQLFixture` instance. Consequently, we only need to initiate the PostgreSQL container once for the entirety of tests in this collection, markedly enhancing performance by eliminating the redundancy of starting the container for each individual test or test class. However, this efficiency necessitates careful management to preserve test isolation and prevent cross-test interference within the shared database instance. Hence, we've reverted to implementing `IAsyncLifetime` for the setup and teardown of database tables specific to each test, thereby removing direct database initialization and disposal responsibilities from the `PostgreSQLFixture`. This adjustment is crucial for upholding isolation among tests.
 
-I still don't really like this part, I have experimented with using class inheritance to get the same behavior, but xUnit doesn't want to play nice with that. So for now this is the best I have come up with, please let me know if you have a better solution.
-
-Something that I have not mentioned is that before we started using this `ICollectionFixture<T>` feature, we would still create a new database instance for each test class. And assuming you are using a database for more than a single table, this would still degrade performance in the long run. Now that we have this `[Collection(nameof(PostgreSQLFixtureCollection))]` each test class that uses this collection attribute will share the same `PostgreSQLFixture` instance. This means that we only start the `PostgreSQL` container once for all the tests that use this collection. This is a huge performance improvement.
+Despite the effectiveness of this solution, it's not without its drawbacks. I've explored leveraging class inheritance to achieve a similar outcome, aiming for a cleaner or more streamlined implementation. Unfortunately, compatibility challenges with xUnit have hindered these efforts. At present, this approach—combining the Collection attribute with IAsyncLifetime for resource management—stands as our optimal solution. Nevertheless, I'm open to suggestions and keen to explore alternative methods that may offer improved simplicity or efficiency.
 
 ### Bonus: Respawn
 
