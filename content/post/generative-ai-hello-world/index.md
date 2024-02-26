@@ -2,7 +2,7 @@
 title: "The Hello World of Generative AI: Exploring Retrieval Augmented Generation"
 description: "Dive into the world of Generative AI with a firsthand account of implementing Retrieval Augmented Generation (RAG). Discover how RAG transforms data retrieval and generation, offering insights into building a cost-effective, powerful AI system for any use case."
 slug: generative-ai-hello-world
-date: 2024-02-24 00:00:00+0000
+date: 2024-02-26 00:00:00+0000
 original: true
 image: cover.jpg
 categories:
@@ -28,11 +28,13 @@ Let's get started.
 
 ## Approaches to RAG
 
-In this article I'm going to focus on the use of [embedding](https://openai.com/blog/introducing-text-and-code-embeddings), if you are still unfamiliar with the concept please take 10 minutes to read the link, it's worth it, for the retrieval part of the RAG. This is going to cover probably 80% of the real world use cases, and is the most fleshed out approach to RAG. But seeing this is a new and exciting field which is getting a lot of attention from some very smart people, there are and will be a lot of very interesting other approaches to RAG, on of which is SQL based retrieval, not to mention using an agent based approach. But let's start with embedding to get a good understanding of the basics of RAG.
+In this article, we'll focus on using [embeddings](https://openai.com/blog/introducing-text-and-code-embeddings) for the retrieval component of RAG. If you're not yet familiar with the concept, I recommend spending about 10 minutes reading through the provided link—it's quite insightful. Using embeddings should address most of the scenarios you might encounter in real-world applications, making it a well-established method for implementing RAG.
+
+However, the field of Generative AI, particularly RAG, is rapidly evolving, drawing interest from brilliant minds worldwide. As a result, numerous innovative approaches to RAG are emerging. For instance, some are exploring SQL-based retrieval methods, while others are experimenting with agent-based techniques. Despite these advancements, we'll start with embeddings to build a solid foundation in understanding RAG's basics.
 
 ## <span id="ingestion">Ingestion</span>
 
-The process of ingesting data into your system to be used for RAG consists of a few steps.
+The process of ingesting data for RAG involves several detailed steps:
 
 ```mermaid
 flowchart LR
@@ -42,7 +44,9 @@ flowchart LR
     transform --> persist[(Persist)]
 ```
 
-### Input => Extract
+This diagram shows the flow from initial input through extraction, partitioning, transformation, and finally, persistence in the system.
+
+### Input to Extract
 
 ```mermaid
 flowchart LR
@@ -54,13 +58,17 @@ flowchart LR
     transform --> persist[(Persist)]
 ```
 
-As mentioned we are going to use the most traditional approach to RAG, this means that at the end of the line we need to have text to include in the prompt we are sending to the model for it to generate an answer. This means that while the possible input sources have diversified quite a bit since the advent of LLMs, we do need to have a way to convert the source into text. This means that the ingestion pipeline can look a little different for each type of input. For things like [Microsoft Word Documents](https://nl.wikipedia.org/wiki/Microsoft_Word) there are libraries like [python-docx](https://python-docx.readthedocs.io/en/latest/) or [DocX](https://github.com/xceedsoftware/docx) for C#, that can be used to extract the text. For PDFs there are libraries like [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/) or SAAS offerings like [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/overview?view=doc-intel-4.0.0) that can be used to extract the text.
+In the initial phase of converting various data types into text, the "Input to Extract" step is pivotal. This conversion is critical because the text will be used in prompts for the model to generate answers. As the variety of input sources has expanded significantly, the method for converting these sources into text becomes crucial, affecting the design of the ingestion pipeline.
 
-But with the jump in Machine Learning capabilities, we can also use models like [Whisper](https://openai.com/research/whisper) to extract text from audio containing speech, transcribe, or use models like [DALL-E](https://openai.com/dall-e-2) to describe or extract text from images.
+For instance, when dealing with [Microsoft Word Documents](https://nl.wikipedia.org/wiki/Microsoft_Word), libraries like [python-docx](https://python-docx.readthedocs.io/en/latest/) for Python or [DocX](https://github.com/xceedsoftware/docx) for C# are effective for extracting text. Similarly, PDF files can be processed using tools such as [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/) or services like [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/overview?view=doc-intel-4.0.0), which help in extracting text efficiently.
 
-It's important to consider the input source when designing the ingestion pipeline, the more precise the text extraction, the better results we well see down the line.
+Moreover, the advancements in Machine Learning have opened new doors for text extraction. Models like [Whisper](https://openai.com/research/whisper) can transcribe speech from audio files, and [DALL-E](https://openai.com/dall-e-2) can describe or extract text from images. This broadens the scope of input sources that can be utilized for RAG, from traditional text documents to multimedia content.
 
-### Extract => Partition
+The choice of extraction method depends heavily on the type of input. A precise extraction process is fundamental to achieving better results in the later stages of RAG. By tailoring the ingestion pipeline to handle different inputs effectively, we lay a solid foundation for generating accurate and relevant responses through the model.
+
+### Extract to Partition
+
+After the extraction process, the next crucial step is partitioning the extracted data into smaller, more manageable pieces. This step is vital because Retrieval Augmented Generation (RAG) aims to tackle the challenge of managing vast amounts of input data, which is not only difficult for a conversational Large Language Model (LLM) to process but also costly.
 
 ```mermaid
 flowchart LR
@@ -72,15 +80,17 @@ flowchart LR
     transform --> persist[(Persist)]
 ```
 
-As mentioned earlier the issue that RAG is trying to address is the fact that we have to much input data for a conversational LLM to process and it's to expensive to do so. We are going to have to try and find a way to partition the extracted source data into smaller chunks or partitions.
+The partitioning approach can vary significantly based on the type of input. For example, a PDF document could be divided into chapters, pages, paragraphs, or sentences based on its structure. If the document includes an index, partitioning could also be done based on topics. For inputs like invoices, partitioning might occur at the line item level.
 
-Like with the extraction step, the partition step can look quite different depending on the input source. Given a simple PDF document, we could partition the document into chapters, pages, paragraphs, or even sentences. If the document has an Index we could consider topic's too. If you input source is an invoice, you might want to partition on the line level.
+The objective with partitioning is to create segments that are as small as possible without losing the context necessary to understand the information they contain. A useful guideline for determining the appropriate size of a partition is to randomly select a partition and review it. If the context of the information is unclear, the partition may be too small. Conversely, if the partition contains multiple subjects, it might be too large.
 
-What ever your input source is, the goal of a partition is to be as small as you can get away with, while still container enough information to retain the context of the information. I nice rule of thumb I use once I have a partition: Select a random one and read it, if you can't understand the context of the information, it's to small. If you see more than one subject in the partition, it's to big.
+Dedicating time to refine the partitioning process is crucial. The effectiveness of the RAG system, including the relevance and accuracy of the answers generated by the model, as well as the system's speed and cost-efficiency, significantly depends on the quality and size of the data partitions created during this step.
 
-The more time you spend on this step, the better your end result will be. The answer the model can generated will depend on the quality of the partitions, but also the speed and the cost of the system will be largely determined by the partitions used.
+This approach ensures that the partitioning stage is optimized to produce manageable chunks of data that retain enough context to be useful, while also keeping processing requirements and costs in check.
 
-### Partition => Transform
+### Partition to Transform
+
+The "Partition to Transform" phase in your RAG implementation journey is where the data starts to take on a new form—transforming partitions into embeddings for efficient retrieval.
 
 ```mermaid
 flowchart LR
@@ -92,11 +102,17 @@ flowchart LR
     transform --> persist[(Persist)]
 ```
 
-When starting out with your own RAG implementation, the transform step is probably the most straight forward. Now that we have our partitions, we need to convert them into embeddings, to enable the most efficient retrieval. The only thing to consider here is the choice of the embedding model. I will always recommend starting with the most used model, at time of writing that is `text-embedding-ada-002` from OpenAI, but they have recently announced two new models that are worth looking into, `text-embedding-3-small` and `text-embedding-3-large`. The thing to consider when choosing a model is the price, speed as you will be using the model a lot. You will need to use the same model for transforming the partitions as you will for the retrieval step, so when you change model along the way, you will need to re-transform all your partitions. In a large percentage of the use cases any of these three models will do, but as with the extraction and partition steps, if your source data is of a certain type, you might want to consider a model that is trained on that type of data.
+With the data now partitioned into manageable chunks, the next step is to convert these partitions into embeddings. This conversion is crucial for facilitating swift and precise data retrieval later on. The selection of the embedding model is a critical decision at this stage. As a starting point, the model `text-embedding-ada-002` from OpenAI is highly recommended due to its widespread use and proven effectiveness. However, OpenAI has also introduced two newer models, `text-embedding-3-small` and `text-embedding-3-large`, which may offer advantages in certain scenarios.
 
-With the best suited model selected, the transform step is quite straight forward. You take the partition and run it though the model to get the embeddings.
+When choosing an embedding model, factors such as cost and processing speed are important to consider, especially given the frequency with which you'll be using this model. Consistency is key; the same model used for creating embeddings must be used during the retrieval phase to ensure compatibility. If you decide to switch models at any point, be prepared to re-transform all your partitions to maintain system integrity.
 
-### Transform => Persist
+For most use cases, any of the three mentioned models will suffice. Nevertheless, it's worth noting that if your source data is particularly unique or specialized, selecting a model specifically trained on similar data types could yield better results.
+
+Executing the transform step is straightforward: process each partition through the selected model to generate embeddings. This step is foundational, setting the stage for the efficient retrieval and utilization of the data in your RAG system.
+
+### Transform to Persist
+
+The final stage in the ingestion pipeline involves securing the fruits of your labor by persisting the transformed data. This step is crucial for ensuring that the embeddings, which are now ready for retrieval and use in RAG processes, are stored safely and efficiently.
 
 ```mermaid
 flowchart LR
@@ -108,7 +124,11 @@ flowchart LR
     end
 ```
 
-The last step in the ingestion pipeline is to persist the result of all the hard work. The most common way to do this is to store the embeddings in a database that supports a vector datatype. I have had good experiences with [PostgreSQL](https://www.postgresql.org) and [Redis](https://redis.com/), but there are many other databases that support vector datatype. There are also SAAS offerings like [Azure Cosmos DB](https://azure.microsoft.com/en-us/services/cosmos-db/) that can be used. Basically if you are company or open source project building a Database, you will have a item on your backlog to support vector datatype. So if the database you are using right now for your other systems does not support it now, it will in the future. Like with the Transform step, the choice of database becomes important when you start to scale. But if you are just starting out, I would recommend starting with PostgreSQL, it's free, open source, and has a lot of support. If you are using a cloud provider, you might want to consider using a SAAS offering.
+Persisting the embeddings typically involves using a database that supports a vector data type. Both [PostgreSQL](https://www.postgresql.org) and [Redis](https://redis.com/) have proven to be reliable choices for this purpose, offering robust support for vector data. However, the landscape of suitable databases is broad, with many capable of handling vector types. SAAS offerings like [Azure Cosmos DB](https://azure.microsoft.com/en-us/services/cosmos-db/) also provide scalable, managed solutions for storing embeddings.
+
+For those at the beginning of their RAG implementation journey, PostgreSQL is a highly recommended starting point. It's not only free and open-source but also well-supported, making it a solid choice for initial experiments and smaller-scale projects. As your needs evolve, especially when scaling up, the choice of database becomes more critical. For those operating within cloud environments, considering a SAAS option might be advantageous, offering seamless integration and managed services that can simplify operations.
+
+In essence, while the choice of database should be informed by your current scale and future growth expectations, starting with PostgreSQL can provide a strong foundation. As the database ecosystem continues to evolve, with vector data types becoming more ubiquitous, transitioning or scaling your data storage solution to meet the demands of your RAG system will become an easier process.
 
 ## Ingestion Code Example
 
@@ -137,13 +157,10 @@ const int OverlapSize = 5;
 var numberOfPartitions = (int) Math.Ceiling((lines.Count - OverlapSize) / (double) (PartitionSize - OverlapSize));
 
 var partitions = Enumerable.Range(0, numberOfPartitions)
-                            .Select(index =>
-                                    {
-                                        var startLine = index * (PartitionSize - OverlapSize);
-                                        var overlapStart = Math.Max(0, startLine - OverlapSize);
-                                        var endLine = Math.Min(overlapStart + PartitionSize, lines.Count);
-                                        var partitionLines = lines.GetRange(overlapStart, endLine - overlapStart);
-                                        return Partition.From(partitionLines);
+                           .Select(index =>
+                                   {
+                                       ... //create partition from lines ...
+                                       return Partition.From(partitionLines);
                                     }).ToList();
 ```
 
@@ -218,25 +235,26 @@ Given the fact that I had to create a clean looking demo, the code for this part
 public class ConversationWithReferences(QuestionContextUseCase useCase,
                                         OpenAIClient openAiClient)
 {
-    private const string _systemMessage = $"""
-                                            - Role: Helpful Documentation Assistant
-                                            - Purpose: Assist consumers with questions specifically about documentation.
-                                            - Method: Answer using only the context provided within `{QuestionContextUseCase.ContextMarker}`.
-                                            - Context Details:
-                                              - Contains relevance-ordered matches with an associated reference index.
-                                            - Limitations:
-                                              - If the answer isn't in the context, clearly state inability to answer.
-                                            - Note:
-                                              - No need for content warnings in messages; users are pre-informed about reliability.
-                                              - Focus solely on answering the question.
-                                            - Response:
-                                              - Include the reference index using square brackets immediately after the relevant information sourced from that reference.
-                                              - Explicitly include line breaks as `\n` within the "Answer" field to preserve the paragraph structure fo the original text.
-                                              - output strictly as a valid JSON object as follows:
-                                                - "Answer": "<your answer with inline citations and explicit line breaks (\n) to preserve formatting>,
-                                                - "References": <json array of used reference indexes>
-                                              - Do not include any content outside this JSON structure.
-                                            """;
+    private const string _systemMessage = 
+    $"""
+        - Role: Helpful Documentation Assistant
+        - Purpose: Assist consumers with questions specifically about documentation.
+        - Method: Answer using only the context provided within `{QuestionContextUseCase.ContextMarker}`.
+        - Context Details:
+            - Contains relevance-ordered matches with an associated reference index.
+        - Limitations:
+            - If the answer isn't in the context, clearly state inability to answer.
+        - Note:
+            - No need for content warnings in messages; users are pre-informed about reliability.
+            - Focus solely on answering the question.
+        - Response:
+            - Include the reference index using square brackets immediately after the relevant information sourced from that reference.
+            - Explicitly include line breaks as `\n` within the "Answer" field to preserve the paragraph structure fo the original text.
+            - output strictly as a valid JSON object as follows:
+            - "Answer": "<your answer with inline citations and explicit line breaks (\n) to preserve formatting>,
+            - "References": <json array of used reference indexes>
+            - Do not include any content outside this JSON structure.
+    """;
 
     public async Task AskQuestion(string question)
     {
