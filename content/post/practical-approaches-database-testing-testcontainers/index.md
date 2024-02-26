@@ -215,13 +215,13 @@ public class PostgresUsersTests(PostgreSQLFixture fixture) : IAsyncLifetime
 
 By utilizing the `Collection` attribute on our test class, we designate it as part of the shared context defined by the `PostgreSQLFixtureCollection`. This arrangement ensures that all tests within this collection utilize the same `PostgreSQLFixture` instance. Consequently, we only need to initiate the PostgreSQL container once for the entirety of tests in this collection, markedly enhancing performance by eliminating the redundancy of starting the container for each individual test or test class. However, this efficiency necessitates careful management to preserve test isolation and prevent cross-test interference within the shared database instance. Hence, we've reverted to implementing `IAsyncLifetime` for the setup and teardown of database tables specific to each test, thereby removing direct database initialization and disposal responsibilities from the `PostgreSQLFixture`. This adjustment is crucial for upholding isolation among tests.
 
-Despite the effectiveness of this solution, it's not without its drawbacks. I've explored leveraging class inheritance to achieve a similar outcome, aiming for a cleaner or more streamlined implementation. Unfortunately, compatibility challenges with xUnit have hindered these efforts. At present, this approach—combining the Collection attribute with IAsyncLifetime for resource management—stands as our optimal solution. Nevertheless, I'm open to suggestions and keen to explore alternative methods that may offer improved simplicity or efficiency.
+Despite the effectiveness of this solution, it comes with certain drawbacks. My primary concern lies in how the database is reset to a known state. I've considered using class inheritance to achieve a similar outcome, aiming for a cleaner or more streamlined process. However, my experiments with a combination of the `Collection` attribute and `IClassFixture<T>` have yet to meet my expectations. Currently, the approach that combines the `Collection` attribute with `IAsyncLifetime` for resource management represents our best solution. Nonetheless, I remain open to suggestions and am eager to explore alternative methods that might offer greater simplicity or efficiency
 
 ### Bonus: Respawn
 
-In my quest to refine the testing setup, I've discovered a promising tool named [`Respawn`](https://github.com/jbogard/Respawn). This package offers an innovative solution for rapid database initialization and cleanup. Unlike traditional methods that involve dropping and recreating databases or tables between tests, `Respawn` intelligently resets only the data that was added during tests. This approach could significantly reduce the overhead associated with test database management, streamlining the entire testing process.
+In my quest to refine the testing setup, I've discovered a promising tool named [`Respawn`](https://github.com/jbogard/Respawn). This package offers an innovative solution for rapid database initialization and cleanup. Unlike traditional methods that involve dropping and recreating databases or tables between tests, Respawn intelligently resets only the data that was added during tests. This approach could significantly reduce the overhead associated with test database management, streamlining the entire testing process.
 
-Although I haven't yet implemented `Respawn` in a production environment, its potential for enhancing test efficiency is clear. I plan to integrate this tool into our testing workflow and closely monitor its impact. Once I've gathered sufficient insights and experience, I look forward to sharing a detailed follow-up post.
+Although I have not yet successfully implemented Respawn in a production environment, its potential to enhance testing efficiency is evident. I plan to continue experimenting with it and attempting to integrate this tool into my testing workflow. Once I have gathered sufficient insights and experience, I look forward to sharing a detailed follow-up post.
 
 ## Closing thoughts
 
@@ -268,3 +268,11 @@ The idea of complete isolation from external systems is a myth, particularly whe
 
 - **Avoiding Licensing and Cost Issues**
 Licensing and operational costs are legitimate concerns. Ideally, database providers would offer a free tier to mitigate these issues, but this isn't always the case. If costs become prohibitive, it may be worth exploring alternatives.
+
+I'm at a point where, for me, I will need convincing to use an in-memory database for testing, as opposed to the other way around. I'm not saying it's impossible, but by default, I would want to hear a compelling argument for it. Here's a non-exhaustive list of arguments that have swayed me:
+
+- **Rapid Prototyping and Development Cycles**
+If the project is in its infancy and the database and its requirements are still evolving, in-memory databases might be a good fit. However, I would still want to transition to a real database as soon as feasible.
+
+- **Unit Testing Specific Database Interactions**
+While in-memory databases might not fully mimic the behavior of a production database, they can still be useful for unit testing specific database interactions or data access layers, assuming the tests are designed with the limitations of in-memory databases in mind.
