@@ -12,17 +12,17 @@ tags:
     - Retrieval Augmented Generation
 ---
 
-As you might have read in [this](https://roosma.dev/p/virtual-hideaway-international-talk/) post, I recently did my first international conference talk. It quite an experience, and I'm happy to say that it went well. In this post I wanted to share the story I told during the talk.
+I recently gave my first talk at an international conference, as mentioned in [this post](https://roosma.dev/p/virtual-hideaway-international-talk/). It was an exciting experience, and I'm pleased to share it went well. In this blog, I'll tell the story I shared during that talk.
 
-Generative AI is pretty much everywhere these days. And pretty much the hello world of generative AI is [Retrieval Augmented Generation (RAG)](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview). Quite literally, Retrieval of relevant information that is than used to augment the generation. The idea is that you have a large dataset of information, many times more than you could ever include in the prompt.
+These days, Generative AI is becoming very common. A basic concept in this field is [Retrieval Augmented Generation (RAG)](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview), which involves using relevant information to enhance the creation process. Essentially, it uses a large set of data, far more than what could typically be included directly in a prompt.
 
-At time of writing the largest version of the GPT-4 model supports 128,000 [tokens](https://platform.openai.com/tokenizer). This means that your input and it's output can not be larger than 128,000 tokens, roughly 100,000 words, sounds like a lot in practice not so much. Expensive too, at \$0.01 for 1000 tokens this means you pay \$1.28 per request.
+As of now, the most advanced version of the GPT-4 model can handle 128,000 [tokens](https://platform.openai.com/tokenizer), which equates to about 100,000 words. While this might seem like a lot, it's actually not that much in practice and can be quite expensive, costing \$1.28 for each request at a rate of \$0.01 per 1,000 tokens.
 
-Instead of trying to include all the information in the prompt, you store you information in a database, and make it search and filterable, so when a user asks a question, you retrieve a subset of relevant information and include that in a special prompt that is then used to generate the answer. The approach is quite powerful. It offers not only cost savings but allows for easy [grounding](https://everything.intellectronica.net/p/grounding-llms) of the base model without the need for [fine-tuning](https://platform.openai.com/docs/guides/fine-tuning) too. It also allows for easy updates of the information without the need to retrain the model.
+Rather than attempting to cram all information into one prompt, the idea is to store information in a database that can be searched and filtered. This way, when someone asks a question, the system retrieves a subset of relevant information to use in a special prompt for generating the answer. This method is not just cost-effective; it also makes it easier to [ground](https://everything.intellectronica.net/p/grounding-llms) the base model with updated information without needing to [fine-tuning](https://platform.openai.com/docs/guides/fine-tuning) it frequently.
 
-You have probably seen RAG in action in SAAS offerings like [Azure AI Search](https://azure.microsoft.com/en-us/products/ai-services/ai-search/) a solution that allows you to upload your own data to a blob storage and than use the Azure AI Search to make it searchable and filterable.
+You might have seen RAG in action through services like [Azure AI Search](https://azure.microsoft.com/en-us/products/ai-services/ai-search/), which allows you to upload your data and then applies RAG behind the scenes. It searches and filters through the data as needed, utilizing Azure's AI capabilities to provide relevant results.
 
-My focus in the talk was: "how do you DIY a RAG implementation for your own use case?". For a basic RAG implementation to work, you basically need another Extract, Transform, Load (ETL) pipeline, with it's own curiosities. For an easier explanation, I divide the ETL pipeline in 2 parts: [Ingestion](#ingestion) and [Retrieval](#retrieval).
+In my talk, I focused on "How to set up a RAG system for your own projects?" At its core, a basic RAG setup requires an Extract, Transform, Load (ETL) pipeline, which brings its own challenges. To simplify, I'll break down the ETL pipeline into two main parts: [Ingestion](#ingestion) and [Retrieval](#retrieval).
 
 Let's get started.
 
