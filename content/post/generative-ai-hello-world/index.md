@@ -4,7 +4,7 @@ description: "Dive into the world of Generative AI with a firsthand account of i
 slug: generative-ai-hello-world
 date: 2024-02-26 00:00:00+0000
 original: true
-image: cover.jpg
+image: cover.webp
 categories:
     - Development
 tags:
