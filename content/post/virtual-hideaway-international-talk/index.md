@@ -18,6 +18,8 @@ In this article, I'll frequently mention [Matthijs van der Veer](https://www.lin
 
 As I reflect on the journey that led me to the stage in Tallinn, it's clear that this adventure began not with a single step, but with a transformative period of growth and exploration in my professional life.
 
+_If you are curious about the presentation itself, I have written a separate post, [“The Hello World of Generative AI: Exploring Retrieval Augmented Generation”](/p/generative-ai-hello-world/), which delves into the content and the technology we presented._
+
 ## The road to Tallinn
 
 In consulting, moments often arise when you find yourself between assignments. During these periods, my employer encourages us to use the time to enhance our professional authority. In mid-2023, as the influence and potential of Generative AI (GenAI) for our clients became increasingly evident, I was encouraged to delve into this topic, especially given its rising interest among our customers. One area that stood out was Retrieval Augmented Generation (RAG), particularly relevant since GPT-3.5 was limited to only 4k tokens at the time, making RAG a promising technique for short-term applications. Eager to understand the technology firsthand, a colleague and I, both awaiting new projects, began our exploration. Our journey into research and experimentation helped us gain a deeper understanding. Upon sharing my insights with my manager, the inevitable question I had anticipated was posed: "When are you doing an XKE on this?" XKE, or [Xebia Knowledge Exchange](https://xke.xebia.com/faq/), is our biweekly internal "conference" where we explore topics of personal interest with our peers.
