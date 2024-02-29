@@ -229,7 +229,7 @@ This approach not only ensures that the model's responses are informed by up-to-
 
 ## Retrieval Code Example
 
-Given the fact that I had to create a clean looking demo, the code for this part is a little more spread out than I would like, so I can't link you to a single file, but I'm going to walk you through it here, and you will be able to find it with the other source code.
+Given the complexity and the need for a streamlined demonstration, the code for the retrieval component of the RAG system is distributed across multiple parts of the project rather than confined to a single file. Below is an integral piece of the system, encapsulated within the [`ConversationWithReferences`](https://github.com/droosma/generative-ai-hello-world/blob/main/OpenAi.Web/ConversationWithReferences.cs) class:
 
 ```csharp
 public class ConversationWithReferences(QuestionContextUseCase useCase,
@@ -264,22 +264,33 @@ public class ConversationWithReferences(QuestionContextUseCase useCase,
 }
 ```
 
-To represent a conversation with the user I created a class `ConversationWithReferences`. On that class I keep track of the messages that have been exchanged between the user and the conversation LLM though `_chatMessages`. In this conversation I start with a system message that explains the context of the conversation to the user. This little bit of text is all the grounding we need to make sure the conversation LLM only uses the context we provide to generate the answer and not it's own internal "knowledge". Getting the system message right is important, and it's a good idea to spend some time on it. The other thing this class does is handle the user's question though the `AskQuestion` method. In this method I use the `QuestionContextUseCase` to get the prompt and references.
+The `ConversationWithReferences` class encapsulates the dialogue between a user and the conversational LLM, structured around a specific use case represented by `QuestionContextUseCase`. This class is pivotal for managing and directing the flow of conversation within the constraints of provided documentation or context.
+
+A standout feature of this implementation is the `_systemMessage`, a comprehensive template that establishes the ground rules for the conversation. This message serves multiple purposes:
+
+- It defines the role and purpose of the assistant, emphasizing its function as a documentation helper.
+- It sets the methodological framework, instructing the assistant to rely exclusively on the context marked by `{QuestionContextUseCase.ContextMarker}`.
+- It outlines the limitations and expectations for the interaction, such as handling questions beyond the context's scope and formatting responses.
+
+The `AskQuestion` method is at the heart of the interaction, leveraging [`QuestionContextUseCase.Execute(question)`](https://github.com/droosma/generative-ai-hello-world/blob/main/OpenAi/question/QuestionContextUseCase.cs) to generate a tailored prompt and associated references. This approach ensures that the LLM's responses are grounded in the provided context, aligning with the system message's directives for answer generation and reference citation.
 
 ```csharp
 public async Task<(string, Reference[])> Execute(string question)
 {
+    // Generate embeddings for the given question using a specific model.
     var questionEmbeddingResult = await openAiClient.GetEmbeddingsAsync(new EmbeddingsOptions("text-embedding-ada-002",
                                                                                               new List<string> {question}));
     var questionEmbedding = questionEmbeddingResult.Value.Data[0].Embedding;
 
+    // Query the database for the top 10 matches based on the question's embedding.
     var questionMatches = await database.Find(questionEmbedding, 10);
     var matches = questionMatches.ToArray();
 
+    // Build the prompt with matches and references.
     var promptBuilder = new StringBuilder();
     promptBuilder.AppendLine(ContextMarker);
 
-    for(var i = 0;i < matches.Length;i++)
+    for (var i = 0; i < matches.Length; i++)
     {
         promptBuilder.AppendLine($"MATCH: {matches[i].Content.Optimize()}");
         promptBuilder.AppendLine($"REF: {i}");
@@ -287,12 +298,19 @@ public async Task<(string, Reference[])> Execute(string question)
 
     promptBuilder.AppendLine(ContextMarker);
 
-    return (promptBuilder.ToString().Optimize(),
-            matches.Select(m => m.Reference).ToArray());
+    // Optimize and return the constructed prompt along with the references.
+    return (promptBuilder.ToString().Optimize(), matches.Select(m => m.Reference).ToArray());
 }
+
 ```
 
-There you see the `QuestionContextUseCase.Execute` method that is called from the `ConversationWithReferences.AskQuestion` method. The eagle eyed among you might notice that it starts with a familiar piece of code, the `GetEmbeddingsAsync` method from the ingestion pipeline. Once we have the embeddings for the question, we use them to query the database for the top 10 matches. We then use the matches to build a prompt, this prompt includes the original text along with a reference to the partition it came from. We then return the prompt and used the references.
+The `Execute` method in the `QuestionContextUseCase` class starts by using the OpenAI client to turn a user's question into an embedding with the `text-embedding-ada-002` model—the same code as used in the ingestion process. This transforms the question into the embedding's format that can then be compared against stored embeddings to find matches.
+
+Following this, the method queries the database to fetch the top ten entries that closely match the question's embedding. The rationale here is simple: to gather a set of potentially relevant answers based on the question's context.
+
+With the matches in hand, the method then constructs a prompt. It lists out each match and assigns a reference index to each, aiming to keep track of where each piece of information originated. This part of the process is fairly utilitarian, ensuring that the information is organized in a way that a conversational LLM can use to generate answers.
+
+The method concludes by returning a string that combines all these elements in a structured format, alongside an array of references to the matches. This output is prepared with the intention of making it easier for the conversational LLM to utilize the provided context in its response generation.
 
 ```csharp
 public class ConversationWithReferences(QuestionContextUseCase useCase,
@@ -318,9 +336,13 @@ public class ConversationWithReferences(QuestionContextUseCase useCase,
 }
 ```
 
-Back to the `ConversationWithReferences.AskQuestion` method. Once we have the result from the use case, we add the prompt and the question to the chat history. We then send the history to the LLM to get the answer. Once we have the answer we parse it to get the used references so that we can point the user to the relevant information used to generate the answer, and provide the context in a separate view.
+The `AskQuestion` method in the `ConversationWithReferences` class plays a key role in interacting with the user and the LLM. After receiving the user's question and constructing the appropriate prompt, this method proceeds by logging both the prompt and the original question into the chat history. This historical record is essential for maintaining the flow of conversation and providing context for the LLM's response.
 
-And that's the basics of a RAG implementation with verifiable answers.
+Following this, the method communicates with the LLM via the `openAiClient.GetChatCompletionsAsync` function, passing in the chat history as context for generating an answer. The LLM's response is then parsed to extract the answer along with any references used in its formation. This step is crucial for providing verifiable sources for the information given in the LLM's response, enhancing the credibility and usefulness of the generated answer.
+
+By filtering these references based on their presence in the list of references obtained earlier, the method ensures that only relevant and valid references are associated with the assistant's response. This filtered list of references is then added to the chat history alongside the assistant's answer, allowing users to explore the context and sources of the information provided.
+
+This approach not only facilitates a dynamic and informative interaction between the user and the assistant but also underscores the importance of transparency and verifiability in automated responses. Through this process, the `ConversationWithReferences` class embodies the essence of a RAG implementation, where answers are not only generated based on contextually relevant information but are also anchored by references that users can verify.
 
 ## Closing thoughts
 
