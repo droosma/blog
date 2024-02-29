@@ -12,19 +12,23 @@ tags:
     - Retrieval Augmented Generation
 ---
 
-I recently gave my first talk at an international conference, as mentioned in [this post](https://roosma.dev/p/virtual-hideaway-international-talk/). It was an exciting experience, and I'm pleased to share it went well. In this blog, I'll tell the story I shared during that talk.
+I recently had the privilege of delivering my first talk at an international conference, a milestone I'm excited to have shared in [this post](https://roosma.dev/p/virtual-hideaway-international-talk/). The experience was exhilarating, and I'm pleased to report it went well. In this blog, I'll recount the journey I shared during my talk—how to set up a Retrieval Augmented Generation (RAG) system for your projects.
 
-These days, Generative AI is becoming very common. A basic concept in this field is [Retrieval Augmented Generation (RAG)](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview), which involves using relevant information to enhance the creation process. Essentially, it uses a large set of data, far more than what could typically be included directly in a prompt.
+## Why Retrieval Augmented Generation (RAG)?
 
-As of now, the most advanced version of the GPT-4 model can handle 128,000 [tokens](https://platform.openai.com/tokenizer), which equates to about 100,000 words. While this might seem like a lot, it's actually not that much in practice and can be quite expensive, costing \$1.28 for each request at a rate of \$0.01 per 1,000 tokens.
+In the rapidly evolving landscape of Generative AI, a foundational concept has emerged: Retrieval Augmented Generation (RAG). Detailed in [Microsoft's overview](https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview), RAG enhances the creative process by leveraging a vast dataset—much more extensive than what can be directly incorporated into a prompt.
 
-Rather than attempting to cram all information into one prompt, the idea is to store information in a database that can be searched and filtered. This way, when someone asks a question, the system retrieves a subset of relevant information to use in a special prompt for generating the answer. This method is not just cost-effective; it also makes it easier to [ground](https://everything.intellectronica.net/p/grounding-llms) the base model with updated information without needing to [fine-tuning](https://platform.openai.com/docs/guides/fine-tuning) it frequently.
+RAG's importance cannot be overstated as it addresses several limitations inherent to Large Language Models (LLMs):
 
-You might have seen RAG in action through services like [Azure AI Search](https://azure.microsoft.com/en-us/products/ai-services/ai-search/), which allows you to upload your data and then applies RAG behind the scenes. It searches and filters through the data as needed, utilizing Azure's AI capabilities to provide relevant results.
+- **Cost Efficiency**: The most advanced GPT-4 model can process up to 128,000 [tokens](https://platform.openai.com/tokenizer), equivalent to about 100,000 words. Despite appearing ample, this often proves insufficient in practice and incurs a steep cost of $1.28 per request, at $0.01 per 1,000 tokens.
 
-In my talk, I focused on "How to set up a RAG system for your own projects?" At its core, a basic RAG setup requires an Extract, Transform, Load (ETL) pipeline, which brings its own challenges. To simplify, I'll break down the ETL pipeline into two main parts: [Ingestion](#ingestion) and [Retrieval](#retrieval).
+- **Answer Verification**: Just as recalling specific details from long-ago learned material is challenging without citing exact sources, LLMs face a similar issue. They generate answers based on their training data but cannot specify the source of their information, making verification difficult.
 
-Let's get started.
+- **Availability of Information**: The state-of-the-art `gpt-4-0125-preview` model's training data extends only up to December 2023. Thus, it lacks any information published after this date. This gap means it cannot provide insights on recent developments, such as a new product line. Furthermore, when data confidentiality is a priority, and information isn't publicly accessible, traditional models like GPT-4 offer no assistance.
+
+RAG offers a compelling solution by maintaining information in a searchable database rather than embedding all new or missing details directly into the prompt. Upon receiving a query, the system fetches a relevant information subset to formulate an answer. This method is not just more economical; it also supports source verification, thereby mitigating the dissemination of inaccurate information through a technique known as [grounding](https://everything.intellectronica.net/p/grounding-llms). Additionally, RAG reduces the need for [fine-tuning](https://platform.openai.com/docs/guides/fine-tuning) and altogether avoids the need for model retraining to incorporate new information.
+
+One can see RAG in action through platforms like [Azure AI Search](https://azure.microsoft.com/en-us/products/ai-services/ai-search/), which employs RAG to sift through uploaded data, utilizing Azure's AI capabilities to furnish pertinent outcomes.
 
 ## Approaches to RAG
 
@@ -32,9 +36,9 @@ In this article, we'll focus on using [embeddings](https://openai.com/blog/intro
 
 However, the field of Generative AI, particularly RAG, is rapidly evolving, drawing interest from brilliant minds worldwide. As a result, numerous innovative approaches to RAG are emerging. For instance, some are exploring SQL-based retrieval methods, while others are experimenting with agent-based techniques. Despite these advancements, we'll start with embeddings to build a solid foundation in understanding RAG's basics.
 
-## <span id="ingestion">Ingestion</span>
+## Ingestion Process
 
-The process of ingesting data for RAG involves several detailed steps:
+At the heart of an effective RAG setup lies the Extract, Transform, Load (ETL) pipeline, a fundamental component that, while common across many data handling systems, requires specific attention to detail in this context. The following diagram illustrates the comprehensive journey data undertakes from its initial form, through its extraction and transformation phases, to its ultimate persistence within the system.
 
 ```mermaid
 flowchart LR
@@ -43,8 +47,6 @@ flowchart LR
     partition --> transform(Transform)
     transform --> persist[(Persist)]
 ```
-
-This diagram shows the flow from initial input through extraction, partitioning, transformation, and finally, persistence in the system.
 
 ### Input to Extract
 
@@ -58,17 +60,17 @@ flowchart LR
     transform --> persist[(Persist)]
 ```
 
-In the initial phase of converting various data types into text, the "Input to Extract" step is pivotal. This conversion is critical because the text will be used in prompts for the model to generate answers. As the variety of input sources has expanded significantly, the method for converting these sources into text becomes crucial, affecting the design of the ingestion pipeline.
+The "Input to Extract" phase involves converting diverse data types into text, preparing them for use in model prompts. This step serves as the foundation for generating model responses. As input sources diversify, selecting the appropriate method for text conversion becomes a key consideration in designing the ingestion pipeline.
 
-For instance, when dealing with [Microsoft Word Documents](https://nl.wikipedia.org/wiki/Microsoft_Word), libraries like [python-docx](https://python-docx.readthedocs.io/en/latest/) for Python or [DocX](https://github.com/xceedsoftware/docx) for C# are effective for extracting text. Similarly, PDF files can be processed using tools such as [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/) or services like [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/overview?view=doc-intel-4.0.0), which help in extracting text efficiently.
+Extracting text from [Microsoft Word Documents](https://nl.wikipedia.org/wiki/Microsoft_Word) can be efficiently managed using libraries such as [python-docx](https://python-docx.readthedocs.io/en/latest/) for Python or [DocX](https://github.com/xceedsoftware/docx) for C#. PDF files are well handled by tools like [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/) or services such as [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/overview?view=doc-intel-4.0.0), which offer streamlined text extraction capabilities.
 
-Moreover, the advancements in Machine Learning have opened new doors for text extraction. Models like [Whisper](https://openai.com/research/whisper) can transcribe speech from audio files, and [DALL-E](https://openai.com/dall-e-2) can describe or extract text from images. This broadens the scope of input sources that can be utilized for RAG, from traditional text documents to multimedia content.
+Advancements in Machine Learning have broadened the scope of input sources for RAG systems. Models like [Whisper](https://openai.com/research/whisper) enable the transcription of speech from audio files, while [DALL-E](https://openai.com/dall-e-2) can interpret or extract text from images, extending the range of usable inputs from traditional documents to multimedia content.
 
 The choice of extraction method depends heavily on the type of input. A precise extraction process is fundamental to achieving better results in the later stages of RAG. By tailoring the ingestion pipeline to handle different inputs effectively, we lay a solid foundation for generating accurate and relevant responses through the model.
 
 ### Extract to Partition
 
-After the extraction process, the next crucial step is partitioning the extracted data into smaller, more manageable pieces. This step is vital because Retrieval Augmented Generation (RAG) aims to tackle the challenge of managing vast amounts of input data, which is not only difficult for a conversational Large Language Model (LLM) to process but also costly.
+After the extraction process, the next step is partitioning the extracted data into smaller, more manageable pieces. This step is vital because Retrieval Augmented Generation (RAG) aims to tackle the challenge of managing vast amounts of input data, which is not only difficult for a conversational Large Language Model (LLM) to process but also costly.
 
 ```mermaid
 flowchart LR
@@ -189,7 +191,7 @@ With a database brimming with embeddings, we can now look into the retrieval pha
 
 ## <span id="retrieval">Retrieval</span>
 
-Fortunately, the retrieval part of the RAG is a lot more straight forward than the ingestion part. Where we had to account for the different input sources and the different ways to partition the input, the retrieval part is just a matter of caching in on that hard work. And putting our vector supported database to work.
+The retrieval aspect of the RAG system is considerably more straightforward than the ingestion phase. While ingestion required accommodating various input sources and partitioning strategies, retrieval capitalizes on that groundwork by leveraging our vector-supported database.
 
 ```mermaid
 flowchart LR
@@ -199,7 +201,7 @@ flowchart LR
 
 The normal interaction with a conversational LLM is that a user asks a question, the LLM then generates an answer that is then sent back to the user.
 
-In this case the LLM is going to generate the answer the best it can given it's own integrated "knowledge", an LLM doesn't really have knowledge, but it get's the point across see [here](https://stackoverflow.blog/2023/07/03/do-large-language-models-know-what-they-are-talking-about/) for more in-depth discussion. If the answer to your question is part of the public knowledge, the LLM will probably be able to generate a good answer. The main problem we are running into now with the use of LLMs is that when the answer is generated like this, there is no way for us to verify that the answer is factually correct, not without extensively researching it ourselves, given that we are trying to use LLMs to democratize the access to knowledge we want to offer the consumer of the answer targeted sources to verify the answer. As I mentioned earlier, using RAG we can easily ground the LLM in our own knowledge base and prevent ungrounded answers.
+Typically, when a user interacts with a conversational Large Language Model (LLM), they pose a question and receive an answer generated by the LLM. This process hinges on the model's built-in "knowledge"—a term used loosely here as LLMs don't possess knowledge in the conventional sense. They synthesize responses based on patterns learned during training. For a deeper dive into this concept, see [this detailed discussion](https://stackoverflow.blog/2023/07/03/do-large-language-models-know-what-they-are-talking-about/). If the question pertains to widely known information, the LLM is likely to generate an accurate response. However, verifying the factual accuracy of these responses remains a challenge, particularly when we aim to democratize access to knowledge. RAG systems address this by grounding responses in a verifiable knowledge base, thus preventing unverified answers.
 
 There is the ongoing issue of the fact that the information you want to expose to your consumers has been generated just yesterday, say the launch of a new product line, this information is not yet part of training data that the latest LLM has been trained on. Or the information is not and never will be part of the public knowledge. In these cases the LLM will not be able to use it's internal "knowledge" to generate a usable answer.
 
