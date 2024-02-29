@@ -132,21 +132,21 @@ In essence, while the choice of database should be informed by your current scal
 
 ## Ingestion Code Example
 
-All the source code I use here can be found on my [GitHub](https://github.com/droosma/generative-ai-hello-world) it's not production code, but it should provide a good starting point for your own implementation.
+You can find all the source code I mention in this article on this [GitHub repository](https://github.com/droosma/generative-ai-hello-world). While it's not ready for production, it offers a solid foundation for your projects.
 
-The ingestion code can be found [here](https://github.com/droosma/generative-ai-hello-world/blob/main/OpenAi/Ingest/IngestionUseCase.cs)
+The full code these snippets are taken from can be found [here](https://github.com/droosma/generative-ai-hello-world/blob/main/OpenAi/Ingest/IngestionUseCase.cs)
 
 ```csharp
 var stream = await fileSystem.Load("enbrel-epar-product-information_en.pdf");
 ```
 
-As this was intended as an onstage demo, I used a single PDF document as the input source. The document was a product information document for a medicine called Enbrel. A truly tedious document of about 350 pages long that doesn't fit in a single prompt, it's pretty much unreadable for normal mortals, so it really shows off the power behind LLMs and how the can make important information like this available for everyone. For demonstration purposes I just load it from my file system, but in a real world scenario you would probably load it from a blob storage.
+For the onstage demonstration, I chose to work with a single, extensive PDF document: the product information for a medicine named Enbrel. This document stretches over 350 pages, presenting a formidable challenge for anyone to read through due to its complexity and length. It serves as a good example to showcase the capabilities of large language models (LLMs) in making dense and critical information accessible to all. In this code, the document is loaded directly from the file system for simplicity. However, in practical applications, such data would typically be fetched from cloud-based storage solutions, like blob storage, to handle scalability and accessibility in real-world scenarios.
 
 ```csharp
 var operation = await documentAnalysisClient.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-read", stream);
 ```
 
-Next I used the Azure AI Document Intelligence to extract the text from the PDF. This is a very powerful tool, that even allows you to train your own models for extraction. But for this demo I used the `prebuilt-read` model.
+In my next step, I leveraged the Azure AI Document Intelligence to extract text from a PDF. This tool is impressively powerful, allowing users to even train their own models for specific extraction needs. However, for this demonstration, I opted for the prebuilt-read model.
 
 ```csharp
 var lines = operation.Value.Pages.SelectMany(page => page.Lines.Select((line, index) 
@@ -164,7 +164,7 @@ var partitions = Enumerable.Range(0, numberOfPartitions)
                                     }).ToList();
 ```
 
-Given the extracted text I get back from the Azure AI Document Intelligence, I just flatten the result into a list of lines, recording the page number and line number for each line. Next I create partitions of 100 lines, with a 5 line overlap to retain a little more context and meta data of the partition in the original source. As I described in my Partition step, this is not the way to go most of the time, but for demonstration purposes it got the answers I needed, but at a very high cost and slow process times.
+After extracting text with Azure AI Document Intelligence, I transformed the result into a list of lines, noting each line's page and line number. I then segmented these lines into partitions of 100, with a 5-line overlap to maintain context from the original source. While this approach may not always be the best, it proved sufficient for demonstration purposes, albeit with higher costs and slower processing times.
 
 ```csharp
 var embeddingTasks = partitions.Select(async partition =>
@@ -177,15 +177,15 @@ var embeddingTasks = partitions.Select(async partition =>
 var embeddings = await Task.WhenAll(embeddingTasks);
 ```
 
-Next I transform the partitions into embeddings using the `text-embedding-ada-002` model from OpenAI. Given the badly architected way I set this up I just loop though all the partitions and individually request an embedding, when doing so I often ran in to rate limiting so I just wrap the calls in a retry policy to handle that. There are also more efficient ways of making the embedding request as multiple partitions are possible.
+I proceeded to convert the partitions into embeddings using OpenAI's `text-embedding-ada-002` model. Admittedly, the setup was less than ideal. Processing each partition individually led to frequent rate limiting issues, which I mitigated using a retry policy. There are more efficient methods for requesting embeddings, especially when dealing with multiple partitions.
 
-And finally I dump all my newly generated embeddings into my database.
+Finally, I stored all generated embeddings in my database.
 
 ```csharp
 await database.Save(embeddings);
 ```
 
-Now that we have a database full of embeddings, we can move on to the retrieval part of the RAG.
+With a database brimming with embeddings, we can now look into the retrieval phase of the Retrieval-Augmented Generation (RAG).
 
 ## <span id="retrieval">Retrieval</span>
 
