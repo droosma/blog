@@ -1,8 +1,8 @@
 ---
 title: "The Hello World of Generative AI: Exploring Retrieval Augmented Generation"
-description: "Dive into the world of Generative AI with a firsthand account of implementing Retrieval Augmented Generation (RAG). Discover how RAG transforms data retrieval and generation, offering insights into building a cost-effective, powerful AI system for any use case."
+description: "This blog post discusses setting up a Retrieval Augmented Generation (RAG) system, highlighting its application in Generative AI projects. It explains RAG's role in addressing Large Language Models (LLMs) limitations, approaches to implementing RAG, and the critical Extract, Transform, Load (ETL) pipeline for data management. Additionally, it guides on data partitioning, transformation, and persistence to enhance retrieval and generation efficiency."
 slug: generative-ai-hello-world
-date: 2024-02-26 00:00:00+0000
+date: 2024-03-01 00:00:00+0000
 original: true
 image: cover.webp
 categories:
@@ -12,7 +12,7 @@ tags:
     - Retrieval Augmented Generation
 ---
 
-I recently had the privilege of delivering my first talk at an international conference, a milestone I'm excited to have shared in [this post](https://roosma.dev/p/virtual-hideaway-international-talk/). The experience was exhilarating, and I'm pleased to report it went well. In this blog, I'll recount the journey I shared during my talk—how to set up a Retrieval Augmented Generation (RAG) system for your projects.
+In one of my earlier blog posts, [From Virtual Hideaway to International Talk](/p/virtual-hideaway-international-talk/), I shared my experience of delivering my first talk at an international conference. In this blog, I'll discuss the contents of my talk, which was about setting up a Retrieval Augmented Generation (RAG) system yourself from scratch to learn from for your projects.
 
 ## Why Retrieval Augmented Generation (RAG)?
 
@@ -22,7 +22,7 @@ RAG's importance cannot be overstated as it addresses several limitations inhere
 
 - **Cost Efficiency**: The most advanced GPT-4 model can process up to 128,000 [tokens](https://platform.openai.com/tokenizer), equivalent to about 100,000 words. Despite appearing ample, this often proves insufficient in practice and incurs a steep cost of $1.28 per request, at $0.01 per 1,000 tokens.
 
-- **Answer Verification**: Just as recalling specific details from long-ago learned material is challenging without citing exact sources, LLMs face a similar issue. They generate answers based on their training data but cannot specify the source of their information, making verification difficult.
+- **Verifying Answers**: Just like it's difficult for people to recall precise details from material learned long ago without referencing specific sources, Language Models (LLMs) encounter a similar challenge. They produce responses based on the information they were trained on but are unable to pinpoint the exact source of their data, which complicates the process of verifying their answers.
 
 - **Availability of Information**: The state-of-the-art `gpt-4-0125-preview` model's training data extends only up to December 2023. Thus, it lacks any information published after this date. This gap means it cannot provide insights on recent developments, such as a new product line. Furthermore, when data confidentiality is a priority, and information isn't publicly accessible, traditional models like GPT-4 offer no assistance.
 
@@ -38,7 +38,7 @@ However, the field of Generative AI, particularly RAG, is rapidly evolving, draw
 
 ## Ingestion Process
 
-At the heart of an effective RAG setup lies the Extract, Transform, Load (ETL) pipeline, a fundamental component that, while common across many data handling systems, requires specific attention to detail in this context. The following diagram illustrates the comprehensive journey data undertakes from its initial form, through its extraction and transformation phases, to its ultimate persistence within the system.
+At the heart of an effective RAG setup lies the Extract, Transform, Load (ETL) pipeline, a fundamental component that, while common across many data handling systems, requires specific attention to detail in this context. The diagram illustrates how data moves from its initial form, through extraction and transformation phases, to its final storage in the system.
 
 ```mermaid
 flowchart LR
@@ -82,7 +82,7 @@ flowchart LR
     transform --> persist[(Persist)]
 ```
 
-The partitioning approach can vary significantly based on the type of input. For example, a PDF document could be divided into chapters, pages, paragraphs, or sentences based on its structure. If the document includes an index, partitioning could also be done based on topics. For inputs like invoices, partitioning might occur at the line item level.
+The partitioning approach can vary significantly based on the type of input. For example, a PDF document could be divided into chapters, pages, paragraphs, or sentences based on its structure. If the document includes an index, partitioning could also be done based on topics. For datasets consisting of customer reviews, partitioning could be implemented at the level of individual reviews or even specific comments within those reviews.
 
 The objective with partitioning is to create segments that are as small as possible without losing the context necessary to understand the information they contain. A useful guideline for determining the appropriate size of a partition is to randomly select a partition and review it. If the context of the information is unclear, the partition may be too small. Conversely, if the partition contains multiple subjects, it might be too large.
 
