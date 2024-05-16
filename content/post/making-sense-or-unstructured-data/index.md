@@ -94,11 +94,11 @@ Now that we have our project setup, we can start implementing the solution. Firs
 ```csharp
 using Microsoft.SemanticKernel;
 
-var kernelBuilder = Kernel.CreateBuilder()
-                          .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
-                                                        endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
-                                                        apiKey:"API_KEY")
-                          .Build();
+var kernel = Kernel.CreateBuilder()
+                   .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
+                                                 endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
+                                                 apiKey:"API_KEY")
+                   .Build();
 
 Console.WriteLine("Hello, World!");
 ```
@@ -113,12 +113,12 @@ Adding the following code to the `Program.cs` file should do the trick:
 ```csharp
 var fileContents = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "importFile.txt"));
 
-var result = await kernelBuilder.InvokePromptAsync($"""
-                                                    You are given a text which contains a number of car listings.
-                                                    Your task is to split the text into individual car listings, being careful to not omit any information.
-                                                    -----
-                                                    {fileContents}
-                                                    """);
+var result = await kernel.InvokePromptAsync($"""
+                                            You are given a text which contains a number of car listings.
+                                            Your task is to split the text into individual car listings, being careful to not omit any information.
+                                            -----
+                                            {fileContents}
+                                            """);
 
 Console.WriteLine(result);
 Console.ReadLine();
@@ -172,34 +172,34 @@ Color me impressed, it was able to split the file into individual car listings, 
 
 ```csharp
 var arguments = new KernelArguments {{"content", fileContents}};
-var result = await kernelBuilder.InvokePromptAsync("""
-                                                   You are tasked with splitting a large text into individual blocks, each describing a single car listings. Below is the text content from a file:
-                                                   ```
-                                                   {{$content}}
-                                                   ```
+var result = await kernel.InvokePromptAsync("""
+                                            You are tasked with splitting a large text into individual blocks, each describing a single car listings. Below is the text content from a file:
+                                            ```
+                                            {{$content}}
+                                            ```
 
-                                                   ### Tasks:
+                                            ### Tasks:
 
-                                                   1. Ensure no information is omitted. Include all text as it appears in the file.
-                                                   2. Produce the output in valid JSON format. The output must be directly parsable into an Array of Strings, each string representing a single listings description.
+                                            1. Ensure no information is omitted. Include all text as it appears in the file.
+                                            2. Produce the output in valid JSON format. The output must be directly parsable into an Array of Strings, each string representing a single listings description.
 
-                                                   ### Sample Output:
-                                                   [
-                                                       "Description text for the first listing",
-                                                       "Description text for the second listing"
-                                                   ]
-                                                   """,
-                                                   arguments);
+                                            ### Sample Output:
+                                            [
+                                                "Description text for the first listing",
+                                                "Description text for the second listing"
+                                            ]
+                                            """,
+                                            arguments);
 var listings = JsonSerializer.Deserialize<IEnumerable<string>>(result.ToString());
 Console.WriteLine(string.Join($"{Environment.NewLine}===={Environment.NewLine}", listings));
 Console.ReadLine();
 ```
 
-As you can see, we added a bit more structure to the prompt. First moved the file contents from the string interpolation to a argument. We also added more groundings to the prompt, making sure the output is something we can automatically parse, which we do with a `System.Text.Json`. There are of course more ways to structure the output, but I have had a lot of success with this `json` approach in the past.
+As you can see, we added a bit more structure to the prompt. First moved the file contents from the string interpolation to a argument. We also added more groundings to the prompt, making sure the output is something we can automatically parse, which we do with a `System.Text.Json.JsonSerializer`. There are of course more ways to structure the output, but I have had a lot of success with this `json` approach in the past. But I encourage you to experiment and find what works best for you.
 
 After running the code, the output should look something like this:
 
-```text
+```plaintext
 I'm selling my beloved Toyota Camry. It's a fantastic car with only 100,000 miles on it. Manufactured back in October 2015. I'm looking to get $12,500 for it. Let me know if you're interested!
 
 Contact me at: example123@email.com
@@ -223,21 +223,279 @@ Selling my Mercedes-Benz C-Class. It's got 120,000 km on it and was built in Jan
 Contact me for more information!
 ```
 
-Nice, we now have a list of car listings, each in a separate string. You might be wondering why I'm introducing this intermediate step, and the reason is simple. I expect the parsing of the individual car listings to be a bit more complex, with this intermediate step I can now also parallelize the parsing of the individual car listings, making the process faster. An added bonus is that it's highly unlikely that I will hit the token limit for subsequent requests. And lastly, given that the context for a subsequent request is now much smaller, this reduces the chance of the model missing important information or taking a wrong turn and getting confused.
+Nice, we now have a list of car listings, each in a separate string. You might be wondering why I'm introducing this intermediate step, and the reason is simple. I expect the parsing of the individual car listings to be a bit more complex, and when you limit the context for an LLM like this it reduces the chance of the model taking a wrong path and start hallucinating. But there are a few other benefits. By splitting up the single large task into small single listings we can also parallelize the parsing of the individual car listings, making the process faster. The final benefit is that it's pretty much impossible to hit the token limit.
 
-//Expand the demo, introduce the gpt-4 model, parallel the subsequent requests into that other model.
+So lets implement the parsing of a individual car listing. The process is almost exactly the same as splitting the file, but we need to ground our prompt a bit more to make sure we get the information we need.
 
-//Do the initial file split with overlapping chunks to make sure we don't miss any information.
+```csharp
+private async Task<Listing> ExtractListing(string contents)
+{
+    var arguments = new KernelArguments { { "content", contents } };
+    var result = await kernel.InvokePromptAsync("""
+                                                You are tasked with converting a car listing into a structured JSON format below is the text content from a file:
+                                                ```
+                                                {{$content}}
+                                                ```
 
-//Add the currency conversion part.
+                                                ### Tasks:
 
-//https://github.com/microsoft/semantic-kernel/blob/main/dotnet/samples/Concepts/Filtering/RetryWithFilters.cs
+                                                1. Ensure no information is omitted. Include all text as it appears in the file.
+                                                2. Produce the output in valid JSON format. The output must be directly parsable into an Listing object.
 
+                                                ### Sample Output:
+                                                {
+                                                    "Make":"Toyota",
+                                                    "Model":"highlux",
+                                                    "Odometer":"100000",
+                                                    "ManufacturerDate":"2000-05-29",
+                                                    "Price":"16900",
+                                                    "Contact":"contact@example.com"
+                                                }
+                                                """,
+                                                arguments);
+    var response = result.ToString();
+    return JsonSerializer.Deserialize<Listing>(response);
+}
+```
 
-1. Split the file into individual car listings.
-2. Extract structured data from each car listing.
-3. Split original file into chunks to make sure we don't hit the token limit.
+As we want to call this prompt for each individual car listing, I created a wrapper function that takes the contents of a single car listing and returns a `Listing` object. The `Listing` object is a simple record that represents the structured data we want to extract from the car listing. The `Listing` record should look something like this:
 
-## Perform Currency Conversion
+```csharp
+public record Listing(
+    string Make,
+    string Model,
+    string Odometer,
+    string ManufacturerDate,
+    string Price,
+    string Contact)
+{
+    public override string ToString() => $"{Make} {Model} [{Odometer}/{ManufacturerDate}] - {Price} | {Contact}";
+}
+```
+
+The entire execution of the program now looks like this:
+
+```csharp
+public async Task Execute(string contents)
+{
+    var listingTexts = await ExtractListings(contents);
+    var listingTasks = listingTexts.AsParallel()
+                                   .Select(ExtractListing);
+    var listings = await Task.WhenAll(listingTasks);
+
+    Console.WriteLine(string.Join<Listing>(Environment.NewLine, listings));
+}
+```
+
+In the code we first call the `ExtractListings` function to split the file into individual car listings. We then use `AsParallel` to parallelize the extraction of the structured data from each car listing. Finally, we use `Task.WhenAll` to wait for all the tasks to complete and then print the structured data to the console. Running the code should give you an output similar to this:
+
+```plaintext
+BMW 3 Series [60,000/2017-03] - ¥2,000,000 | 123-456-7890
+Ford Mustang [80000/2018-05] - 15000 |
+Honda Civic [150000/2010-12] - 8000 | John@example456.email.com
+Mercedes-Benz C-Class [120,000 km/January 2019] - ?20,00,000 | contact@example.com
+Toyota Camry [100,000 miles/October 2015] - $12,500 | example123@email.com
+```
+
+One last step, as we iliminated the rist of hitting the token limit for the second `ExtractListing` method by only sending a single car listing to the model, we need to make sure we don't hit the token limit for the first `ExtractListings` method. We can do this by splitting the file into chunks and sending each chunk to the model. This is a simple process, but it does require a bit of code. Again there are many ways to do this, but as an example I will show you how I did it.
+
+```csharp
+public static IEnumerable<string> GetChunks(string content, 
+                                            int chunkSize = 100, 
+                                            int overlapLines = 10)
+{
+    var lines = content.Split(Environment.NewLine);
+    return Enumerable.Range(0, (lines.Length + chunkSize - 1) / chunkSize)
+                     .Select(i => string.Join(Environment.NewLine,
+                                              lines.Skip(i * chunkSize)
+                                                   .Take(chunkSize + overlapLines)));
+}
+```
+
+The `GetChunks` function takes the file contents and splits it into chunks of a specified size. The `chunkSize` parameter determines the number of lines in each chunk, while the `overlapLines` parameter determines the number of overlapping lines between chunks. This function returns an `IEnumerable<string>` of the chunks. I'm using overlapping chunks to make sure we don't miss any information when splitting the file as we are just splitting on newlines, which can be a bit risky as we can split a car listing in half. this way we make sure we don't miss any information at the cost of possible duplicate listings.
+
+The final implementation of the `Execute` function now looks like this:
+
+```csharp
+public async Task Execute(string contents)
+{
+    var chunks = GetChunks(contents);
+
+    var listingTextTasks = chunks.AsParallel()
+                                 .Select(ExtractListings)
+                                 .ToList();
+    var listingTexts = await Task.WhenAll(listingTextTasks);
+
+    var listingTasks = listingTexts.SelectMany(listingText => listingText)
+                                   .AsParallel()
+                                   .Select(ExtractListing)
+                                   .ToList();
+    var listings = await Task.WhenAll(listingTasks);
+
+    Console.WriteLine(string.Join<Listing>(Environment.NewLine, listings));
+}
+```
+
+First we split the file into chunks using the `GetChunks` function. We then use `AsParallel` to parallelize the extraction of the individual car listings from each chunk. Finally, we use `Task.WhenAll` to wait for all the tasks to complete and then print the structured data to the console. Running this should give you the same output as before, but now we are minimizing the risk of running into the token limit.
+
+And that's it, we have successfully parsed the unstructured data into structured data. We can leave the rest of the processing to more traditional mechanisms. But if I have peaked your interest in to what else you can do with Microsoft Semantic Kernel, let's take a look at a few more advanced features.
+
+## Creating and calling functions
+
+As indicated earlier, there is still some work to be done to make the structured data more usable. For example, we might want to convert the price of each car listing to a common currency. Or we want to parse the dates to `Date` objects and instead of having the odometer be in different units we might only want a integer in kilometers. We can do this by creating a function that takes the price and currency as input and returns the price in the desired currency. Or take the odometer part and convert it to kilometer integer. We than configure the LLM model to call these models when it assess they are required.
+
+As far as I have been able to find, there is no way to allow the model to call a function through the same way we have been calling the model until now. So we are going to have to switch to using the `IChatCompletionService` that comes out of the box with Semantic Kernel. This service is designed to abstract the intricacies of creating a chat application, but we can use it a little bit differently.
+
+```csharp
+using Microsoft.SemanticKernel;
+
+var kernelBuilder = Kernel.CreateBuilder()
+                          .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
+                                                        endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
+                                                        apiKey:"API_KEY");
+var kernel = kernelBuilder.Build();
+
+var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
+```
+
+Same as before we create the kernel builder and add the Azure OpenAI chat completion service to it. But this time we also get the `IChatCompletionService` from the kernel.
+Next we implement the `ExtractListing` in the new way
+
+```csharp
+public async Task<Listing> ExtractListing(string listingText)
+{
+    var history = new ChatHistory
+                  {
+                      new(AuthorRole.System,
+                          """
+                          tasked with converting a single car listing into a sting structured JSON format
+
+                          ### Tasks:
+
+                          1. Ensure no information is omitted. Include all text as it appears in the file.
+                          2. Produce a single valid JSON representation of the object. 
+                          3. The output must be directly parsable into an Listing object.
+
+                          ### Sample Response:
+                          {
+                              "Make":"Toyota",
+                              "Model":"highlux",
+                              "Odometer":"100000",
+                              "ManufacturerDate":"2000-05-29",
+                              "Price": extracted price as decimal converted to dollar,
+                              "Contact":"contact@example.com"
+                          }
+                          """),
+                      new(AuthorRole.User, listingText)
+                  };
+    var result = await chatCompletionService.GetChatMessageContentAsync(history);
+
+    var response = result.Content;
+    return JsonSerializer.Deserialize<Listing>(response);
+}
+```
+
+As we are now using the ChatCompletionService, we need to create a `ChatHistory` object that contains conversation history. As I said earlier, the `IChatCompletionService` is an abstraction designed for use with a chat bot like [`ChatGPT`](https://chat.openai.com/). In the history you can specify who said what and by chosing between `AuthorRole.User` The user, or `AuthorRole.Assistant` the bot. You usually start off the converstation, as I have done here with a `AuthorRole.System` which tells the bot how to behave. So I changed the original prompt to be a bit to expect the user to input the car listing. The rest of the code is the same as before.
+
+Ok, so now we have what we had before, but a bit more complex. Let's get to why we changed it, as Semantic kernel calls them `Plugins`. Let's start with the currency conversion.
+
+```csharp
+public sealed class CurrencyPlugin
+{
+    private static readonly Random _random = new();
+
+    [KernelFunction,
+     Description("Currency amount and returns the equivalent amount in USD")]
+    public static decimal ConvertToDollar([Description("The ISO 4217 currency code")] string currencyCode,
+                                          [Description("The amount of money to convert")] decimal amount)
+        => amount * (decimal)(_random.NextDouble() * 2);
+}
+```
+
+The `CurrencyPlugin` class contains a single method, `ConvertToDollar`, that takes a currency code and an amount and returns a random amount in USD. The method is decorated with the `KernelFunction` attribute, which tells the Semantic Kernel that this method is a plugin function. The `Description` attribute is used to provide a description of the method and its parameters. The method returns a `decimal` value, which is the dollar equivalent of the provided currency amount. For the sake of this example, I'm just returning a random value, but you can replace this with a real currency conversion service.
+
+Next we need to register the plugin with the kernel. We do this by adding the `CurrencyPlugin` class to the kernel builder.
+
+```csharp
+var kernelBuilder = Kernel.CreateBuilder()
+                          .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
+                                                        endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
+                                                        apiKey:"API_KEY");
+kernelBuilder.Plugins.AddFromType<CurrencyPlugin>();
+var kernel = kernelBuilder.Build();
+```
+
+And we change the `IChatCompletionService` call a bit to allow the model to call the plugin.
+
+```csharp
+var settings = new OpenAIPromptExecutionSettings
+               {
+                   ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+               };
+var result = await _completionService.GetChatMessageContentAsync(history, settings, kernel);
+```
+
+The `OpenAIPromptExecutionSettings` object is used to configure the behavior of the tool when calling kernel functions. In this case, we set the `ToolCallBehavior` property to `AutoInvokeKernelFunctions`, which tells the tool to automatically call kernel functions when needed. Running the code now should give you the same output as before, but now the price of each car listing is a random value in USD.
+
+from the original listing test:
+
+```plaintext
+I'm selling my beloved Toyota Camry. It's a fantastic car with only 100,000 miles on it. Manufactured back in October 2015. I'm looking to get € 12,500 for it. Let me know if you're interested!
+
+Contact me at: example123@email.com
+```
+
+We now get the following output:
+
+```plaintext
+{
+    "Make":"Toyota",
+    "Model":"Camry",
+    "Odometer":"100000",
+    "ManufacturerDate":"2015-10-01",
+    "Price": 6423.30,
+    "Contact":"example123@email.com"
+}
+```
+
+Something I have noticed is that the model is not always able to correctly do what the System prompts is asking it to do. So you might need to add some more grounding to the prompt to make sure the model is able to do what you want it to do. An alternative is to switch models, as I have noticed that the `GPT-4` model is a lot better at following the instructions given to it. But as I mentioned earlier, the `GPT-4` model is a lot more expensive, so you will need to weigh the cost against the benefit.
+
+As you can see using `Plugins` is a powerful way to extend the functionality of the model. The price conversion is a simple example, but you can use plugins to do more complex operations like date parsing, unit conversion, or even calling external services. The possibilities are endless, and it's a great way to make your models more powerful and flexible.
+
+## Using multiple models
+
+If, as indicated above you want to use different models for different parts of the process, you will have to configure the kernel to allow for this.
+
+```csharp
+var kernel = Kernel.CreateBuilder()
+                   .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
+                                                 endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
+                                                 apiKey:"API_KEY",
+                                                 serviceId:"gpt-35",
+                                                 modelId:"gpt-35")
+                    .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
+                                                 endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
+                                                 apiKey:"API_KEY",
+                                                 serviceId:"gpt-4",
+                                                 modelId:"gpt-4")
+                   .Build();
+```
+
+By adding multiple `AddAzureOpenAIChatCompletion` calls with a different `modelId` and `serviceId` you can configure the kernel to register different models which you can than use for different parts of the process.
+
+For the `IChatCompletionService` you can pass the `serviceId` to the `GetRequiredService` get the service like this:
+
+```csharp
+var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>("gpt-35");
+```
+
+And for the `InvokePromptAsync` method you can adjust the `arguments` with `PromptExecutionSettings` where you can specify the `ModelId` like this:
+
+```csharp
+var arguments = new KernelArguments(new PromptExecutionSettings{ModelId = "gpt-35"}) {{"content", contents}};
+```
 
 ## Conclusion
+
+As you can see, using Microsoft Semantic Kernel to parse unstructured data is a powerful and flexible solution. By leveraging the power of Generative AI, you can do something that would have been impossible just a few years ago. 
+
