@@ -23,7 +23,7 @@ Here are the goals I set for my proof of concept:
 2. Make the process fast, accurate, and cost-effective.
 3. Bonus: Use real-time currency conversion functions to streamline imports.
 
-Curious to see how it all worked out? Stick around, and I'll walk you through it. All the code samples are available in this [GitHub repository](https://github.com/droosma/making-sense-or-unstructured-data).
+Curious to see how it all worked out? Stick around, and I'll walk you through it. All the code samples are available in this [GitHub repository](https://github.com/droosma/parsing-unstructured-data-with-semantic-kernel).
 
 ## The Problem: Parsing a Difficult File Format
 
@@ -81,37 +81,35 @@ With all these features and strong support, Microsoft Semantic Kernel is a great
 
 ## Implementing the Solution
 
-As I have some familiarity with how the GPT LLM models work, there are a few considerations I will take into account when implementing the solution. The first is that the file can be large. So I will need to make sure I don't hit the token limit. The second is that I need to make sure to use the right model for the right job. Given that at time of writing the best and largest model is `GPT-4-Turbo` with a `128.000` token context at € 0.010/1000 tokens. Meaning a request can cost as much as € 1.28, yikes. So do I really need all the power of `GPT-4-Turbo` for this task? I think not. I will start with a cheaper model like `GPT-3.5-Turbo-0125` at € 0.0005/1000 tokens, and see how well that performs on these relatively simple tasks. This choice does have the implication that I will need to spend more time on the implementation to make sure I don't hit the token limit. as the limit for this model is 16.000 tokens per request.
+With some familiarity with GPT LLM models, there are a few considerations to keep in mind when implementing this solution. Firstly, the file may be large, so avoiding the token limit is crucial. Secondly, choosing the right model is important. As of now, the best and largest model is GPT-4-Turbo with a 128,000 token context at €0.010 per 1,000 tokens, potentially costing up to €1.28 per request. That’s quite expensive. However, for this task, the full power of GPT-4-Turbo may not be necessary. I’ll start with a more cost-effective model, GPT-3.5-Turbo-0125, at €0.0005 per 1,000 tokens, but I need to be mindful of its 16,000 token limit.
 
-First things first, we are going to need access to the GPT models, as our cloud provider of choice is Azure, Azure OpenAI it is. If you want to follow along, given that this service is still not available to all, you will need to request access for you Azure subscription, try [here](https://azure.microsoft.com/en-us/products/ai-services/openai-service/) and click on `Apply for access` it usually takes about 24h for someone on the azure side to approve your application, so please account for that.
-Once you have access, you will need to create a new Azure OpenAI resource. I would love to give you a step by step guide on how to do this, but the process is in flux and I don't want to give you outdated information. So I will just say, go to the Azure portal and create a new Azure OpenAI resource. Once you have created the resource, you will be able to get the API key and the endpoint. You will also need to deploy the model you want to use, being careful to remember the name you gave your model deployment as you will be needing this later.
+Firstly, to access the GPT models through our cloud provider, Azure, you'll need to request access for your Azure subscription. You can apply for access on [Azure's OpenAI service page](https://azure.microsoft.com/en-us/products/ai-services/openai-service/), usually approved within 24 hours.
 
-Right, let's get started. First we need to create a new project and add the Microsoft.SemanticKernel package to it. You can do this by running the following command in the terminal:
+Once you have access, create a new Azure OpenAI resource in the Azure portal. After setup, you’ll receive an API key and an endpoint URL. Don’t forget to deploy the model and note down the deployment name.
+
+Now, let’s start by creating a new project and adding the Microsoft.SemanticKernel package:
 
 ```powershell
 dotnet new console -n ParsingUnstructuredData && cd ParsingUnstructuredData && dotnet add package Microsoft.SemanticKernel
 ```
 
-Now that we have our project setup, we can start implementing the solution. First we need to setup the kernel builder and add the Azure OpenAI chat completion service to it. After which your `Program.cs` file should look something like this:
+Next, set up the kernel in your Program.cs and configure it to use the Azure OpenAI chat completion service:
 
 ```csharp
 using Microsoft.SemanticKernel;
 
 var kernel = Kernel.CreateBuilder()
                    .AddAzureOpenAIChatCompletion(deploymentName:"AZURE_OPENAI_MODEL_NAME",
-                                                 endpoint:"https://DEPLOYMENT_NAME.openai.azure.com/",
+                                                 endpoint:"END_POINT",
                                                  apiKey:"API_KEY")
                    .Build();
 
 Console.WriteLine("Hello, World!");
 ```
 
-As you can see, this is the spot where you will need to add your Azure OpenAI model deployment name, endpoint, and API key.
+Replace placeholders with your actual deployment name, endpoint, and API key.
 
-So as mentioned earlier, I want to use `GPT-3.5-Turbo-0125` to do the heavy lifting. So let's start with something simple, let's see if is able to split the file into individual car listings.
-To keep things simple I'm just going to read the from my file system and read it into a string, this is not the recommended way to do this in production, but it is enough for the scope of this article.
-
-Adding the following code to the `Program.cs` file should do the trick:
+As a start, let's try splitting the file into individual car listings. We’ll read the file contents into a string for simplicity (note, this is not recommended for production):
 
 ```csharp
 var fileContents = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "importFile.txt"));
@@ -127,7 +125,9 @@ Console.WriteLine(result);
 Console.ReadLine();
 ```
 
-In the code above, we read the file `importFile.txt` I added to the project with a `CopyToOutputDirectory` property set to always. Now that we have the file contents, we invoke the GPT model with a simple prompt asking it to split the file. After running the code, the output should look something like this:
+In this setup, `importFile.txt` should be included in the project with the `CopyToOutputDirectory` property set to `Always`, ensuring it’s always available at runtime.
+
+Upon running, the output will display each car listing structured uniformly:
 
 ```plaintext
 Car 1:
@@ -146,32 +146,10 @@ Manufacture Date: May 2018
 Price: ?15,000
 Contact: No contact provided
 
-Car 3:
-Make: Honda
-Model: Civic
-Mileage: 150,000 km
-Manufacture Date: December 2010
-Price: £8,000
-Contact: John at example456@email.com
-
-Car 4:
-Make: BMW
-Model: 3 Series
-Mileage: 60,000 miles
-Manufacture Date: March 2017
-Price: ¥2,000,000
-Contact: 123-456-7890
-
-Car 5 (Deal Alert):
-Make: Mercedes-Benz
-Model: C-Class
-Mileage: 120,000 km
-Manufacture Date: January 2019
-Price: ?20,00,000
-Contact: No contact provided
+... And so on
 ```
 
-Color me impressed, it was able to split the file into individual car listings, even formatting the output into a uniform structure. This is a great start, but we are not done yet. While the file is technically no longer unstructured, we still need to parse it to something our system can deal with. Given the tendency of the GPT models to be non-deterministic, we will need to add some structure to the prompt to make sure we always get the same output.
+Great! The file was successfully split into individual car listings and formatted uniformly. However, to achieve consistent automated parsing, we need to revise the prompt. This adjustment not only caters to the non-deterministic nature of GPT models but also provides more grounding, helping to stabilize the outputs.
 
 ```csharp
 var arguments = new KernelArguments {{"content", fileContents}};
@@ -194,13 +172,15 @@ var result = await kernel.InvokePromptAsync("""
                                             """,
                                             arguments);
 var listings = JsonSerializer.Deserialize<IEnumerable<string>>(result.ToString());
+
+//For demonstration purposes we output the listings to the console
 Console.WriteLine(string.Join($"{Environment.NewLine}===={Environment.NewLine}", listings));
 Console.ReadLine();
 ```
 
-As you can see, we added a bit more structure to the prompt. First moved the file contents from the string interpolation to a argument. We also added more groundings to the prompt, making sure the output is something we can automatically parse, which we do with a `System.Text.Json.JsonSerializer`. There are of course more ways to structure the output, but I have had a lot of success with this `json` approach in the past. But I encourage you to experiment and find what works best for you.
+As you can see, we've structured the prompt a bit more by moving the file contents from string interpolation to an argument, enhancing clarity and order in the code. Additionally, by refining the prompt we ensure the output can be easily parsed automatically using `System.Text.Json.JsonSerializer`. Using JSON as the output format from Large Language Models (LLMs) like Microsoft's Semantic Kernel is highly effective because it provides a structured, predictable format that facilitates clear task definitions, which is crucial for obtaining accurate and useful responses from the model. However, I encourage you to experiment and find what works best for your specific needs.
 
-After running the code, the output should look something like this:
+The output now, visually segmented for clarity:
 
 ```plaintext
 I'm selling my beloved Toyota Camry. It's a fantastic car with only 100,000 miles on it. Manufactured back in October 2015. I'm looking to get $12,500 for it. Let me know if you're interested!
@@ -214,45 +194,36 @@ Check out this Ford Mustang! It's got 80,000 kilometers on the clock and was bui
 Honda Civic for sale. 150,000 km, manufactured in December 2010. Price: £8,000.
 
 Contact John at example456@email.com for more details.
-====
-Looking to sell my BMW 3 Series. It's in great condition with only 60,000 miles on it. Manufactured in March 2017. Price is ¥2,000,000.
 
-Contact me at: 123-456-7890
-====
-DEAL ALERT!
-
-Selling my Mercedes-Benz C-Class. It's got 120,000 km on it and was built in January 2019. Price: ?20,00,000.
-
-Contact me for more information!
+... And so on
 ```
 
-Nice, we now have a list of car listings, each in a separate string. You might be wondering why I'm introducing this intermediate step, and the reason is simple. I expect the parsing of the individual car listings to be a bit more complex, and when you limit the context for an LLM like this it reduces the chance of the model taking a wrong path and start hallucinating. But there are a few other benefits. By splitting up the single large task into small single listings we can also parallelize the parsing of the individual car listings, making the process faster. The final benefit is that it's pretty much impossible to hit the token limit.
+Nice, we now have a list of car listings, each presented as a separate string. You might wonder why I introduced this intermediate step. The reason is straightforward: parsing individual car listings is expected to be more complex, and limiting the context for an LLM like this reduces the risk of the model deviating and producing inaccurate content, known as "hallucinating." Additionally, breaking down a large task into smaller segments allows for parallel processing of each listing, which speeds up the overall process. Another significant advantage is that this method nearly eliminates the risk of exceeding the model's token limit.
 
-So lets implement the parsing of a individual car listing. The process is almost exactly the same as splitting the file, but we need to ground our prompt a bit more to make sure we get the information we need.
+Now, let’s dive into parsing an individual car listing. The process mirrors the initial file splitting, but we'll refine our prompt to ensure we capture all necessary details:
 
 ```csharp
 private async Task<Listing> ExtractListing(string contents)
 {
     var arguments = new KernelArguments { { "content", contents } };
     var result = await kernel.InvokePromptAsync("""
-                                                You are tasked with converting a car listing into a structured JSON format below is the text content from a file:
+                                                Task: Convert a car listing into a structured JSON format. Below is the text content from a file:
                                                 ```
                                                 {{$content}}
                                                 ```
 
-                                                ### Tasks:
-
+                                                Requirements:
                                                 1. Ensure no information is omitted. Include all text as it appears in the file.
-                                                2. Produce the output in valid JSON format. The output must be directly parsable into an Listing object.
+                                                2. Produce the output in a valid JSON format that can be directly parsed into a Listing object.
 
-                                                ### Sample Output:
+                                                Sample Output:
                                                 {
-                                                    "Make":"Toyota",
-                                                    "Model":"highlux",
-                                                    "Odometer":"100000",
-                                                    "ManufacturerDate":"2000-05-29",
-                                                    "Price":"16900",
-                                                    "Contact":"contact@example.com"
+                                                    "Make": "Toyota",
+                                                    "Model": "Highlux",
+                                                    "Odometer": "100000",
+                                                    "ManufacturerDate": "2000-05-29",
+                                                    "Price": "16900",
+                                                    "Contact": "contact@example.com"
                                                 }
                                                 """,
                                                 arguments);
@@ -261,7 +232,9 @@ private async Task<Listing> ExtractListing(string contents)
 }
 ```
 
-As we want to call this prompt for each individual car listing, I created a wrapper function that takes the contents of a single car listing and returns a `Listing` object. The `Listing` object is a simple record that represents the structured data we want to extract from the car listing. The `Listing` record should look something like this:
+This structured approach ensures that each listing is meticulously parsed, maintaining the integrity of the data while streamlining the extraction process.
+
+As we want to call this prompt for each individual car listing, I created a wrapper function that takes the contents of a single car listing and returns a `Listing` object. The `Listing` object is a simple record that represents the structured data we want to extract from the car listing. The `Listing` record is defined as follows:
 
 ```csharp
 public record Listing(
@@ -276,7 +249,9 @@ public record Listing(
 }
 ```
 
-The entire execution of the program now looks like this:
+This ensures a clean and organized structure, making each listing easy to handle and further process or display.
+
+I also encapsulated the entire execution of the in a `Execute` method, which orchestrates the parsing and processing of car listings from unstructured text data:
 
 ```csharp
 public async Task Execute(string contents)
@@ -290,7 +265,9 @@ public async Task Execute(string contents)
 }
 ```
 
-In the code we first call the `ExtractListings` function to split the file into individual car listings. We then use `AsParallel` to parallelize the extraction of the structured data from each car listing. Finally, we use `Task.WhenAll` to wait for all the tasks to complete and then print the structured data to the console. Running the code should give you an output similar to this:
+In this code, we start by calling the `ExtractListings` function to split the text file into individual car listings. We then enhance performance by initiating parallel processing of each listing to convert them into structured data using the `AsParallel` method. This approach utilizes multiple threads, speeding up the process significantly. Once all parallel tasks are completed, synchronized with `Task.WhenAll`, the structured data is then printed to the console.
+
+When you run this code, it produces a neatly formatted output, displaying detailed information about each car:
 
 ```plaintext
 BMW 3 Series [60,000/2017-03] - ¥2,000,000 | 123-456-7890
@@ -300,7 +277,7 @@ Mercedes-Benz C-Class [120,000 km/January 2019] - ?20,00,000 | contact@example.c
 Toyota Camry [100,000 miles/October 2015] - $12,500 | example123@email.com
 ```
 
-One last step, as we iliminated the rist of hitting the token limit for the second `ExtractListing` method by only sending a single car listing to the model, we need to make sure we don't hit the token limit for the first `ExtractListings` method. We can do this by splitting the file into chunks and sending each chunk to the model. This is a simple process, but it does require a bit of code. Again there are many ways to do this, but as an example I will show you how I did it.
+The final step in our data processing pipeline involves ensuring we do not hit the token limit for the `ExtractListings` method, having already managed this risk for the `ExtractListing` method by limiting each invocation to a single listing. To achieve this, we split the initial large file into manageable chunks before sending each to the model. This is a simple yet crucial process and requires a bit of code to implement correctly. Let me show you how I tackled this:
 
 ```csharp
 public static IEnumerable<string> GetChunks(string content, 
@@ -315,15 +292,14 @@ public static IEnumerable<string> GetChunks(string content,
 }
 ```
 
-The `GetChunks` function takes the file contents and splits it into chunks of a specified size. The `chunkSize` parameter determines the number of lines in each chunk, while the `overlapLines` parameter determines the number of overlapping lines between chunks. This function returns an `IEnumerable<string>` of the chunks. I'm using overlapping chunks to make sure we don't miss any information when splitting the file as we are just splitting on newlines, which can be a bit risky as we can split a car listing in half. this way we make sure we don't miss any information at the cost of possible duplicate listings.
+The `GetChunks` function breaks down the file contents into chunks based on a specified size. The `chunkSize` parameter sets the number of lines in each chunk, and `overlapLines` adds a buffer by overlapping lines between chunks. This overlapping ensures that no car listing is inadvertently split across two chunks, thus maintaining the integrity of the data despite the risk of potential duplicate entries.
 
-The final implementation of the `Execute` function now looks like this:
+The updated implementation of the `Execute` function is outlined below:
 
 ```csharp
 public async Task Execute(string contents)
 {
     var chunks = GetChunks(contents);
-
     var listingTextTasks = chunks.AsParallel()
                                  .Select(ExtractListings)
                                  .ToList();
@@ -339,9 +315,9 @@ public async Task Execute(string contents)
 }
 ```
 
-First we split the file into chunks using the `GetChunks` function. We then use `AsParallel` to parallelize the extraction of the individual car listings from each chunk. Finally, we use `Task.WhenAll` to wait for all the tasks to complete and then print the structured data to the console. Running this should give you the same output as before, but now we are minimizing the risk of running into the token limit.
+In this approach, we first split the file into chunks using the `GetChunks` function. These chunks are then processed in parallel with `ExtractListings` to extract individual car listings. Finally, `Task.WhenAll` synchronizes the parallel tasks, ensuring that all data is processed before printing the structured listings to the console. This method not only minimizes the risk of exceeding token limits but also maintains a high processing speed.
 
-And that's it, we have successfully parsed the unstructured data into structured data. We can leave the rest of the processing to more traditional mechanisms. But if I have peaked your interest in to what else you can do with Microsoft Semantic Kernel, let's take a look at a few more advanced features.
+By executing this code, you can achieve the same detailed output as before while effectively managing larger data volumes. We have successfully transformed unstructured data into structured data, ready for further processing or analysis using more traditional methods. If you are curious about the additional capabilities of Microsoft's Semantic Kernel, let's explore some advanced features next.
 
 ## Creating and calling functions
 
