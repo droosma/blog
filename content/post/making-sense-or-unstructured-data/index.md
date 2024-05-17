@@ -25,9 +25,9 @@ Here are the goals I set for my proof of concept:
 
 Curious to see how it all worked out? Stick around, and I'll walk you through it. All the code samples are available in this [GitHub repository](https://github.com/droosma/making-sense-or-unstructured-data).
 
-## Problem: Parsing a Difficult File Format
+## The Problem: Parsing a Difficult File Format
 
-We have all been there, you are given a assignment to integrate with a third party system, and when you start to investigate what exactly integrating with the system entails, you find out that the data you need to extract is in a format that is difficult to parse. While not the exact file format, here is a approximation of the file format I was dealing with:
+We've all been there—assigned to integrate with a third-party system, only to discover that the data we need is in a format that's a nightmare to parse. Let me show you an example similar to what I was dealing with:
 
 ```plaintext
 Hey there!
@@ -55,10 +55,11 @@ Selling my Mercedes-Benz C-Class. It's got 120,000 km on it and was built in Jan
 Contact me for more information!
 ```
 
-Well, 💩 I had no idea how I was going to solve this one. When seeing a file like this my first response is usually, ok can I contact a developer on the other end. We need to sit down and figure out how we can make this more ingestible.
-So I did just that, I reached out to the third party and asked if they could provide the data in a more structured format. The response I got was not what I was hoping for. They are, as you can guess from the file format, a small company and they are manually creating these files, cobbling them together from there various internal systems. They had no plans to change the format of the file, and they were not interested in helping me parse it. So there you are, stuck with a for all intents and purposes, an unparsable file that I needed to parse and extract structured data from.
+Well, 💩, I had no idea how to handle this. My first instinct was to contact a developer on the other end and ask if we could make the data more manageable.
 
-Just to be clear, A human can easily parse this file, but I needed to automate the process. I needed to extract the make, model, mileage, manufacture date, and price of each car. I also needed to extract the contact information for the seller. I needed to do this for each car in the file. And while I could have done this manually, I needed to do this on a regular basis, and the file was growing in size. So I needed to automate the process.
+So, I reached out to the third party, hoping they could provide the data in a structured format. Unfortunately, they’re a small company, manually creating these files from various internal systems. They had no plans to change the format or help me parse it.
+
+Here I was, stuck with an almost unparseable file that I needed to extract structured data from. While a human could easily understand this file, I needed to automate the process. I had to extract the make, model, mileage, manufacture date, and price of each car, along with the seller’s contact information. Doing this manually wasn't an option since the file was growing in size and I needed to do this regularly. Automation was the only way forward.
 
 ## Why Choose Microsoft Semantic Kernel
 
