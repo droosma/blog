@@ -321,9 +321,11 @@ By executing this code, you can achieve the same detailed output as before while
 
 ## Creating and calling functions
 
-As indicated earlier, there is still some work to be done to make the structured data more usable. For example, we might want to convert the price of each car listing to a common currency. Or we want to parse the dates to `Date` objects and instead of having the odometer be in different units we might only want a integer in kilometers. We can do this by creating a function that takes the price and currency as input and returns the price in the desired currency. Or take the odometer part and convert it to kilometer integer. We than configure the LLM model to call these models when it assess they are required.
+As previously discussed, to make the structured data from car listings more usable, we need further processing. For instance, standardizing the price to a common currency, parsing dates into `DateTime` objects, or converting the odometer readings from various units to a uniform integer in kilometers, are some enhancements that could greatly improve usability. To facilitate these transformations, we can create functions dedicated to handling each specific task.
 
-As far as I have been able to find, there is no way to allow the model to call a function through the same way we have been calling the model until now. So we are going to have to switch to using the `IChatCompletionService` that comes out of the box with Semantic Kernel. This service is designed to abstract the intricacies of creating a chat application, but we can use it a little bit differently.
+However, integrating these functions directly into the flow controlled by the LLM poses a challenge. Currently, there is no direct method to have the model invoke external functions as part of its processing pipeline using the basic model invocation methods we've used so far. To address this, we need to utilize the `IChatCompletionService` provided with the Microsoft Semantic Kernel. This service is typically designed to simplify the creation of chat applications but can be adapted for our purposes to orchestrate complex workflows involving external function calls.
+
+Here’s how we can set up the `IChatCompletionService`:
 
 ```csharp
 using Microsoft.SemanticKernel;
@@ -337,8 +339,9 @@ var kernel = kernelBuilder.Build();
 var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 ```
 
-Same as before we create the kernel builder and add the Azure OpenAI chat completion service to it. But this time we also get the `IChatCompletionService` from the kernel.
-Next we implement the `ExtractListing` in the new way
+In this setup, we begin by constructing the kernel builder, just as we did previously, and add the Azure OpenAI chat completion service. However, this time we also integrate the `IChatCompletionService` provided by the Semantic Kernel. This service is a higher-level abstraction designed specifically for creating chatbot-like interactions, similar to those managed by [`ChatGPT`](https://chat.openai.com/). Unlike traditional methods that handle single prompts, `IChatCompletionService` manages a continuous conversation history, allowing the model to maintain context over the course of an interaction.
+
+Here’s how you can implement the ExtractListing using this approach:
 
 ```csharp
 public async Task<Listing> ExtractListing(string listingText)
@@ -374,9 +377,16 @@ public async Task<Listing> ExtractListing(string listingText)
 }
 ```
 
-As we are now using the ChatCompletionService, we need to create a `ChatHistory` object that contains conversation history. As I said earlier, the `IChatCompletionService` is an abstraction designed for use with a chat bot like [`ChatGPT`](https://chat.openai.com/). In the history you can specify who said what and by chosing between `AuthorRole.User` The user, or `AuthorRole.Assistant` the bot. You usually start off the converstation, as I have done here with a `AuthorRole.System` which tells the bot how to behave. So I changed the original prompt to be a bit to expect the user to input the car listing. The rest of the code is the same as before.
+In this setup, we use the ChatHistory object to simulate a conversation with the model. The conversation starts with a system-generated message that outlines the task for the model, explaining exactly how the car listing should be processed. This is followed by the user (our application) providing the actual car listing text.
 
-Ok, so now we have what we had before, but a bit more complex. Let's get to why we changed it, as Semantic kernel calls them `Plugins`. Let's start with the currency conversion.
+- AuthorRole.System: This role is used to provide instructions or context to the model, guiding its response pattern.
+- AuthorRole.User: This role represents the input from the user, which in this case is the car listing that needs processing.
+
+The `GetChatMessageContentAsync` method is then called with the structured conversation history. This method sends the entire conversation to the model and retrieves the structured JSON output, which we then deserialize into a Listing object.
+
+With the transition to using `IChatCompletionServic`e and further structuring our code, we've introduced a more sophisticated system that allows for expandable functionality through what the Semantic Kernel refers to as [Plugins](https://learn.microsoft.com/en-us/semantic-kernel/agents/plugins/?tabs=Csharp). Plugins enable us to extend the capabilities of our application seamlessly by integrating custom functions directly into the processing workflow of the Semantic Kernel.
+
+To illustrate how plugins can be utilized, let's consider a practical example of a currency conversion plugin. This plugin will allow our system to convert various currency amounts into US dollars (USD) based on a simplified random conversion rate. Below is the implementation of such a plugin:
 
 ```csharp
 public sealed class CurrencyPlugin
@@ -391,9 +401,9 @@ public sealed class CurrencyPlugin
 }
 ```
 
-The `CurrencyPlugin` class contains a single method, `ConvertToDollar`, that takes a currency code and an amount and returns a random amount in USD. The method is decorated with the `KernelFunction` attribute, which tells the Semantic Kernel that this method is a plugin function. The `Description` attribute is used to provide a description of the method and its parameters. The method returns a `decimal` value, which is the dollar equivalent of the provided currency amount. For the sake of this example, I'm just returning a random value, but you can replace this with a real currency conversion service.
+In this example, we're using a random multiplier to simulate the conversion process. This is purely for demonstration; in a practical setting, you’d replace this with a call to a genuine currency conversion service that provides real-time exchange rates. The `KernelFunction` attribute marks ConvertToDollar as a plugin function, signaling to the Semantic Kernel that it can be called as part of its operational workflow. The `Description` attributes ensure that the purpose of the function and its parameters are clear for the LLM.
 
-Next we need to register the plugin with the kernel. We do this by adding the `CurrencyPlugin` class to the kernel builder.
+To integrate our newly created `CurrencyPlugin` into the Semantic Kernel's workflow, we need to register the plugin with the kernel. This is done by adding the plugin to the kernel builder. Here’s how you can do it:
 
 ```csharp
 var kernelBuilder = Kernel.CreateBuilder()
@@ -404,7 +414,7 @@ kernelBuilder.Plugins.AddFromType<CurrencyPlugin>();
 var kernel = kernelBuilder.Build();
 ```
 
-And we change the `IChatCompletionService` call a bit to allow the model to call the plugin.
+With the `CurrencyPlugin` now part of our kernel configuration, it's ready to be invoked as needed. The next step involves adjusting how we call the `IChatCompletionService` to leverage this new capability.
 
 ```csharp
 var settings = new OpenAIPromptExecutionSettings
@@ -414,9 +424,11 @@ var settings = new OpenAIPromptExecutionSettings
 var result = await _completionService.GetChatMessageContentAsync(history, settings, kernel);
 ```
 
-The `OpenAIPromptExecutionSettings` object is used to configure the behavior of the tool when calling kernel functions. In this case, we set the `ToolCallBehavior` property to `AutoInvokeKernelFunctions`, which tells the tool to automatically call kernel functions when needed. Running the code now should give you the same output as before, but now the price of each car listing is a random value in USD.
+By modifying the `OpenAIPromptExecutionSettings`, specifically the `ToolCallBehavior` property to `AutoInvokeKernelFunctions`, we instruct the system to automatically call our plugin functions when certain conditions within the chat content are met.
 
-from the original listing test:
+With these changes implemented, when you run the code, the interaction will not only parse the car listings but also dynamically convert the price of each listing into USD using the CurrencyPlugin. This random conversion demonstrates the plugin's functionality, although in a live environment, you would likely use a more deterministic method tied to actual currency exchange rates. This enhancement makes the output not only more uniform but also more adaptable to varying international inputs, illustrating a significant leap in the system's capability to handle diverse data types and requirements.
+
+Using the `CurrencyPlugin`, we can now observe the transformation in how our data processing. Given the original car listing:
 
 ```plaintext
 I'm selling my beloved Toyota Camry. It's a fantastic car with only 100,000 miles on it. Manufactured back in October 2015. I'm looking to get € 12,500 for it. Let me know if you're interested!
@@ -424,9 +436,9 @@ I'm selling my beloved Toyota Camry. It's a fantastic car with only 100,000 mile
 Contact me at: example123@email.com
 ```
 
-We now get the following output:
+the listing is transformed into the following JSON:
 
-```plaintext
+```json
 {
     "Make":"Toyota",
     "Model":"Camry",
@@ -437,9 +449,11 @@ We now get the following output:
 }
 ```
 
-Something I have noticed is that the model is not always able to correctly do what the System prompts is asking it to do. So you might need to add some more grounding to the prompt to make sure the model is able to do what you want it to do. An alternative is to switch models, as I have noticed that the `GPT-4` model is a lot better at following the instructions given to it. But as I mentioned earlier, the `GPT-4` model is a lot more expensive, so you will need to weigh the cost against the benefit.
+Here, we see a clear transformation: the car’s price is now shown in USD thanks to the CurrencyPlugin. This example demonstrates how plugins can neatly organize data and convert values. Yet, implementing these plugins can sometimes bring up challenges.
 
-As you can see using `Plugins` is a powerful way to extend the functionality of the model. The price conversion is a simple example, but you can use plugins to do more complex operations like date parsing, unit conversion, or even calling external services. The possibilities are endless, and it's a great way to make your models more powerful and flexible.
+Even with the advanced technology behind the Semantic Kernel and its plugins, there are times when the model might not react to the prompts as we expect. This issue might require us to make some adjustments to the prompts to help the model perform better. Another option is to consider using more advanced models like `GPT-4`, known for better understanding and responding to detailed instructions. However, switching to `GPT-4` could be more expensive, so it's important to think about whether the additional cost is justified by the need for more precise outcomes.
+
+The use of plugins, as shown in the currency conversion, significantly boosts the functionality of our models. This currency plugin is just one example. You can create plugins for various tasks, such as parsing dates, converting measurement units, or even calling external services, which greatly broadens what your applications can do. The ability to add these plugins opens up many possibilities, allowing for the creation of more powerful and adaptive applications. Whether you decide to tweak the prompts for better accuracy or upgrade to a more robust model, these tools offer valuable ways to improve how your system works and how accurately it performs.
 
 ## Using multiple models
 
