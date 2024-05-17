@@ -457,7 +457,9 @@ The use of plugins, as shown in the currency conversion, significantly boosts th
 
 ## Using multiple models
 
-If, as indicated above you want to use different models for different parts of the process, you will have to configure the kernel to allow for this.
+If, like me you run into scenarios where you want to balance the use of the expensive `GPT-4` to certain functions, you'll need to configure the kernel to include the models you want to use.
+
+First, set up the kernel to handle multiple models:
 
 ```csharp
 var kernel = Kernel.CreateBuilder()
@@ -474,19 +476,21 @@ var kernel = Kernel.CreateBuilder()
                    .Build();
 ```
 
-By adding multiple `AddAzureOpenAIChatCompletion` calls with a different `modelId` and `serviceId` you can configure the kernel to register different models which you can than use for different parts of the process.
+In this setup, we add multiple `AddAzureOpenAIChatCompletion` calls with different `modelId` and `serviceId`. This way, the kernel registers different models that you can use for various parts of your application.
 
-For the `IChatCompletionService` you can pass the `serviceId` to the `GetRequiredService` get the service like this:
+To use a specific model with `IChatCompletionService`, pass the serviceId when retrieving the service:
 
 ```csharp
 var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>("gpt-35");
 ```
 
-And for the `InvokePromptAsync` method you can adjust the `arguments` with `PromptExecutionSettings` where you can specify the `ModelId` like this:
+When you want to call `InvokePromptAsync`, you can specify which model to use by adjusting the `arguments` with `PromptExecutionSettings`:
 
 ```csharp
 var arguments = new KernelArguments(new PromptExecutionSettings{ModelId = "gpt-35"}) {{"content", contents}};
 ```
+
+By setting up your kernel like this, you can easily switch between models as needed, optimizing both performance and cost for different parts of your process. This flexibility allows you to tailor the application's AI capabilities to specific tasks, ensuring you get the best results without unnecessary expense.
 
 ## Conclusion
 
