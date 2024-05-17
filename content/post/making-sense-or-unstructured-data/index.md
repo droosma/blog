@@ -13,15 +13,17 @@ tags:
     - dotnet
 ---
 
-As you might have read on the blog in the past, I have been closely following the development of Generative AI and its applications in various fields. So when I recently came across a problem that required parsing unstructured data in a automated way, after having tried to push the problem back to the source and failed, my mind now went to Generative AI and how it might be able to help me solve this problem.
+Hey there! If you've been following my blog, you know how fascinated I am with Generative AI and its growing applications. Recently, I stumbled upon a tricky problem: parsing unstructured data automatically. Despite my best efforts to get cleaner data from the source, I had to find another solution. That’s when Generative AI came to mind.
 
-In this article, I will take you along on my Proof of concept solution to the problem. In my spare time, I have been playing around with a few Generative AI frameworks, and while I have been impressed with the OpenAI SDK, I have been looking for an framework that feels more production ready, and I think I have found it in Microsoft Semantic Kernel. So I will be using it to attempt to solve this problem.
+In this post, I’ll take you through my journey of creating a proof of concept to tackle this challenge. I've dabbled with various Generative AI frameworks in my spare time. Although the OpenAI SDK impressed me, I wanted something more robust for production. Enter Microsoft Semantic Kernel—a tool that seems a lot more ready for the big leagues. So, I decided to give it a shot for this project.
 
-I gave myself a few objectives to achieve with this Proof of Concept, and I will consider the solution a success if I can achieve the following:
+Here are the goals I set for my proof of concept:
 
-1. Take hard to automatically parse text and extract structured data from it.
-2. Optimize the process for speed, accuracy, and cost.
-3. Bonus: Optimize import by using functions for real-time currency conversions.
+1. Extract structured data from tough-to-parse text.
+2. Make the process fast, accurate, and cost-effective.
+3. Bonus: Use real-time currency conversion functions to streamline imports.
+
+Curious to see how it all worked out? Stick around, and I'll walk you through it. All the code samples are available in this [GitHub repository](https://github.com/droosma/making-sense-or-unstructured-data).
 
 ## Problem: Parsing a Difficult File Format
 
@@ -497,5 +499,4 @@ var arguments = new KernelArguments(new PromptExecutionSettings{ModelId = "gpt-3
 
 ## Conclusion
 
-As you can see, using Microsoft Semantic Kernel to parse unstructured data is a powerful and flexible solution. By leveraging the power of Generative AI, you can do something that would have been impossible just a few years ago. 
-
+I'm still a little split about using something as powerful and unpredictable as a Generative AI model to parse some data. But for the life of me, I really can't think of another way to achieve this. If you do please let me know! As for my choice of using Microsoft Semantic Kernel, I'm really happy with it. As I hope I have shown in this article, it is a powerful and flexible framework that makes it easy to build AI solutions with baked in amenities that make it feel a lot more production ready than the OpenAI SDK.
