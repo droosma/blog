@@ -15,7 +15,7 @@ tags:
 
 Hey there! If you've been following my blog, you know how fascinated I am with Generative AI and its growing applications. Recently, I stumbled upon a tricky problem: parsing unstructured data automatically. Despite my best efforts to get cleaner data from the source, I had to find another solution. That’s when Generative AI came to mind.
 
-In this post, I’ll take you through my journey of creating a proof of concept to tackle this challenge. I've dabbled with various Generative AI frameworks in my spare time. Although the OpenAI SDK impressed me, I wanted something more robust for production. Enter Microsoft Semantic Kernel—a tool that seems a lot more ready for the big leagues. So, I decided to give it a shot for this project.
+In this post, I’ll take you through my journey of creating a proof of concept to tackle this challenge. I'll run though my choice of Semantic Kernel, I've dabbled with various Generative AI frameworks in my spare time. Although the OpenAI SDK impressed me, I wanted something more robust for production. I'll show you the steps I took and my thought process behind them. And I'll touch on some advanced features like using multiple models and creating and calling functions.
 
 Here are the goals I set for my proof of concept:
 
@@ -61,6 +61,8 @@ So, I reached out to the third party, hoping they could provide the data in a st
 
 Here I was, stuck with an almost unparseable file that I needed to extract structured data from. While a human could easily understand this file, I needed to automate the process. I had to extract the make, model, mileage, manufacture date, and price of each car, along with the seller’s contact information. Doing this manually wasn't an option since the file was growing in size and I needed to do this regularly. Automation was the only way forward.
 
+So, I turned to Generative AI to see if it could help me out. I had some experience with the OpenAI SDK, but I needed something more robust for production. That's where Microsoft Semantic Kernel came in.
+
 ## Why Choose Microsoft Semantic Kernel
 
 I love keeping things simple, but I also know the value of using the right tool for the job. The OpenAI SDK is great, but for a production environment, I need a bit more. That’s where Microsoft Semantic Kernel comes in.
@@ -77,7 +79,7 @@ Microsoft Semantic Kernel improves upon the Azure OpenAI client library by offer
   - Microsoft provides extensive support, with detailed documentation, tutorials, and access to dedicated support teams for enterprise customers. This comprehensive assistance is crucial for troubleshooting and enhancing your systems.
   - Being part of the Microsoft ecosystem, the Semantic Kernel benefits from a robust community of developers and a wide array of tools and libraries, which can provide additional help and resources.
 
-With its versatile features and strong backing, Microsoft Semantic Kernel offers a solid foundation for building and deploying AI solutions in production environments.
+With its versatile features and strong backing, Microsoft Semantic Kernel offers a solid foundation for building and deploying AI solutions in production environments. So having seen the potential of the Semantic Kernel, I decided to give it a try for my unstructured data parsing problem.
 
 ## Implementing the Solution
 
@@ -317,7 +319,7 @@ public async Task Execute(string contents)
 
 In this approach, we first split the file into chunks using the `GetChunks` function. These chunks are then processed in parallel with `ExtractListings` to extract individual car listings. Finally, `Task.WhenAll` synchronizes the parallel tasks, ensuring that all data is processed before printing the structured listings to the console. This method not only minimizes the risk of exceeding token limits but also maintains a high processing speed.
 
-By executing this code, you can achieve the same detailed output as before while effectively managing larger data volumes. We have successfully transformed unstructured data into structured data, ready for further processing or analysis using more traditional methods. If you are curious about the additional capabilities of Microsoft's Semantic Kernel, let's explore some advanced features next.
+By executing this code, you can achieve the same detailed output as before while effectively managing larger data volumes. We have successfully transformed unstructured data into structured data, ready for further processing or analysis using more traditional methods. So now we have a system that can handle large volumes of unstructured data, and parse it into structured data. This system is not only efficient but also cost-effective, as it uses the right model for the right task, ensuring optimal performance without unnecessary expense. There are a few more things we can do to enhance this system further. If you are curious about the additional capabilities of Microsoft's Semantic Kernel, let's explore some advanced features next.
 
 ## Creating and calling functions
 
@@ -494,6 +496,6 @@ By setting up your kernel like this, you can easily switch between models as nee
 
 ## Conclusion
 
-I find myself somewhat torn over using something as powerful and unpredictable as a Generative AI model to parse data. Honestly, I can't think of another method that achieves this level of complexity and capability. If you know of any alternatives, I’d love to hear about them! However, I've encountered some challenges, particularly with hallucinations and inaccuracies when calling functions or plugins. Sometimes it works flawlessly; other times, it doesn't respond as expected, even with identical inputs. This inconsistency leads me to conclude that while this tool is indeed powerful, it isn’t quite ready for autonomous use in production settings without oversight.
+I find myself somewhat torn over using something as powerful and unpredictable as a Generative AI model to parse data. Honestly, I can't think of another method that achieves this level of complexity and capability. If you know of any alternatives, I’d love to hear about them! I have been testing this approach with a variety of unstructured data, and the results have been promising. It just takes this seemingly impossible task and makes it possible. With the parallel processing and plugins, the system was able to handle large volumes of data and perform complex transformations with ease. However, I've encountered some challenges, particularly with hallucinations and inaccuracies when calling functions or plugins. Sometimes it works flawlessly; other times, it doesn't respond as expected, even with identical inputs. This inconsistency leads me to conclude that while this tool is indeed powerful, it isn’t quite ready for autonomous use in production settings without oversight.
 
 To reliably utilize such a system in production, a mechanism to verify the accuracy of the data—like a human-in-the-loop system—would be necessary. Despite these challenges, I'm quite pleased with choosing Microsoft Semantic Kernel. As demonstrated throughout this article, it provides a robust and flexible framework that simplifies the development of AI solutions, equipped with features that make it feel more production-ready compared to the OpenAI SDK.
