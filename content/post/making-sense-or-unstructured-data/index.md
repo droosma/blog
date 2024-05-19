@@ -1,6 +1,6 @@
 ---
 title: "Making Sense of Unstructured Data using Semantic Kernel"
-description: "Explore the challenges and solutions of parsing unstructured data using Generative AI in this detailed blog post. Discover how Microsoft Semantic Kernel enhances the process with robust features like multiple model integration and custom function plugins. Follow the journey from concept to implementation, including code samples and insights into making AI work in production environments."
+description: "Explore using Generative AI for data parsing in this post. Learn about Microsoft Semantic Kernel's features like multi-model integration and function plugins."
 slug: parsing-unstructured-data-with-semantic-kernel
 date: 2024-05-19 00:00:00+0000
 original: true
