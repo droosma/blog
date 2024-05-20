@@ -92,7 +92,9 @@ Once you have access, create a new Azure OpenAI resource in the Azure portal. Af
 Now, let’s start by creating a new project and adding the Microsoft.SemanticKernel package:
 
 ```powershell
-dotnet new console -n ParsingUnstructuredData && cd ParsingUnstructuredData && dotnet add package Microsoft.SemanticKernel
+dotnet new console -n ParsingUnstructuredData `
+    && cd ParsingUnstructuredData `
+    && dotnet add package Microsoft.SemanticKernel
 ```
 
 Next, set up the kernel in your Program.cs and configure it to use the Azure OpenAI chat completion service:
@@ -111,17 +113,20 @@ Console.WriteLine("Hello, World!");
 
 Replace placeholders with your actual deployment name, endpoint, and API key.
 
+>_Please be aware that replacing these values with your actual credentials works for examples like this, but it's not recommended for production. Instead, consider using environment variables or a configuration file to store sensitive information securely. If you are unsure about how to handle sensitive information in your application, consult the Microsoft documentation for best practices. [Here is a good example.](https://learn.microsoft.com/en-us/aspnet/identity/overview/features-api/best-practices-for-deploying-passwords-and-other-sensitive-data-to-aspnet-and-azure)_
+
 As a start, let's try splitting the file into individual car listings. We’ll read the file contents into a string for simplicity (note, this is not recommended for production):
 
 ```csharp
 var fileContents = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "importFile.txt"));
 
-var result = await kernel.InvokePromptAsync($"""
-                                            You are given a text which contains a number of car listings.
-                                            Your task is to split the text into individual car listings, being careful to not omit any information.
-                                            -----
-                                            {fileContents}
-                                            """);
+var result = await kernel.InvokePromptAsync(
+$"""
+    You are given a text which contains a number of car listings.
+    Your task is to split the text into individual car listings, being careful to not omit any information.
+    -----
+    {fileContents}
+""");
 
 Console.WriteLine(result);
 Console.ReadLine();
@@ -155,24 +160,24 @@ Great! The file was successfully split into individual car listings and formatte
 
 ```csharp
 var arguments = new KernelArguments {{"content", fileContents}};
-var result = await kernel.InvokePromptAsync("""
-                                            You are tasked with splitting a large text into individual blocks, each describing a single car listings. Below is the text content from a file:
-                                            ```
-                                            {{$content}}
-                                            ```
+var result = await kernel.InvokePromptAsync(
+"""
+    You are tasked with splitting a large text into individual blocks, each describing a single car listings. Below is the text content from a file:
+    ```
+    {{$content}}
+    ```
 
-                                            ### Tasks:
+    ### Tasks:
 
-                                            1. Ensure no information is omitted. Include all text as it appears in the file.
-                                            2. Produce the output in valid JSON format. The output must be directly parsable into an Array of Strings, each string representing a single listings description.
+    1. Ensure no information is omitted. Include all text as it appears in the file.
+    2. Produce the output in valid JSON format. The output must be directly parsable into an Array of Strings, each string representing a single listings description.
 
-                                            ### Sample Output:
-                                            [
-                                                "Description text for the first listing",
-                                                "Description text for the second listing"
-                                            ]
-                                            """,
-                                            arguments);
+    ### Sample Output:
+    [
+        "Description text for the first listing",
+        "Description text for the second listing"
+    ]
+""", arguments);
 var listings = JsonSerializer.Deserialize<IEnumerable<string>>(result.ToString());
 
 //For demonstration purposes we output the listings to the console
@@ -208,27 +213,27 @@ Now, let’s dive into parsing an individual car listing. The process mirrors th
 private async Task<Listing> ExtractListing(string contents)
 {
     var arguments = new KernelArguments { { "content", contents } };
-    var result = await kernel.InvokePromptAsync("""
-                                                Task: Convert a car listing into a structured JSON format. Below is the text content from a file:
-                                                ```
-                                                {{$content}}
-                                                ```
+    var result = await kernel.InvokePromptAsync(
+    """
+        Task: Convert a car listing into a structured JSON format. Below is the text content from a file:
+        ```
+        {{$content}}
+        ```
 
-                                                Requirements:
-                                                1. Ensure no information is omitted. Include all text as it appears in the file.
-                                                2. Produce the output in a valid JSON format that can be directly parsed into a Listing object.
+        Requirements:
+        1. Ensure no information is omitted. Include all text as it appears in the file.
+        2. Produce the output in a valid JSON format that can be directly parsed into a Listing object.
 
-                                                Sample Output:
-                                                {
-                                                    "Make": "Toyota",
-                                                    "Model": "Highlux",
-                                                    "Odometer": "100000",
-                                                    "ManufacturerDate": "2000-05-29",
-                                                    "Price": "16900",
-                                                    "Contact": "contact@example.com"
-                                                }
-                                                """,
-                                                arguments);
+        Sample Output:
+        {
+            "Make": "Toyota",
+            "Model": "Highlux",
+            "Odometer": "100000",
+            "ManufacturerDate": "2000-05-29",
+            "Price": "16900",
+            "Contact": "contact@example.com"
+        }
+    """, arguments);
     var response = result.ToString();
     return JsonSerializer.Deserialize<Listing>(response);
 }
@@ -247,7 +252,8 @@ public record Listing(
     string Price,
     string Contact)
 {
-    public override string ToString() => $"{Make} {Model} [{Odometer}/{ManufacturerDate}] - {Price} | {Contact}";
+    public override string ToString() 
+        => $"{Make} {Model} [{Odometer}/{ManufacturerDate}] - {Price} | {Contact}";
 }
 ```
 
@@ -349,29 +355,29 @@ Here’s how you can implement the ExtractListing using this approach:
 public async Task<Listing> ExtractListing(string listingText)
 {
     var history = new ChatHistory
-                  {
-                      new(AuthorRole.System,
-                          """
-                          tasked with converting a single car listing into a sting structured JSON format
+    {
+        new(AuthorRole.System,
+            """
+            tasked with converting a single car listing into a sting structured JSON format
 
-                          ### Tasks:
+            ### Tasks:
 
-                          1. Ensure no information is omitted. Include all text as it appears in the file.
-                          2. Produce a single valid JSON representation of the object. 
-                          3. The output must be directly parsable into an Listing object.
+            1. Ensure no information is omitted. Include all text as it appears in the file.
+            2. Produce a single valid JSON representation of the object. 
+            3. The output must be directly parsable into an Listing object.
 
-                          ### Sample Response:
-                          {
-                              "Make":"Toyota",
-                              "Model":"highlux",
-                              "Odometer":"100000",
-                              "ManufacturerDate":"2000-05-29",
-                              "Price": extracted price as decimal converted to dollar,
-                              "Contact":"contact@example.com"
-                          }
-                          """),
-                      new(AuthorRole.User, listingText)
-                  };
+            ### Sample Response:
+            {
+                "Make":"Toyota",
+                "Model":"highlux",
+                "Odometer":"100000",
+                "ManufacturerDate":"2000-05-29",
+                "Price": extracted price as decimal converted to dollar,
+                "Contact":"contact@example.com"
+            }
+            """),
+        new(AuthorRole.User, listingText)
+    };
     var result = await chatCompletionService.GetChatMessageContentAsync(history);
 
     var response = result.Content;
@@ -420,9 +426,9 @@ With the `CurrencyPlugin` now part of our kernel configuration, it's ready to be
 
 ```csharp
 var settings = new OpenAIPromptExecutionSettings
-               {
-                   ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-               };
+    {
+        ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+    };
 var result = await _completionService.GetChatMessageContentAsync(history, settings, kernel);
 ```
 
