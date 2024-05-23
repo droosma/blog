@@ -81,7 +81,7 @@ provider = "giscus"
 [comments.giscus]
 repo = "droosma/blog"
 repoID = "R_kgDOJ_HSeQ"
-category = "General"
+category = "Article"
 categoryID = "DIC_kwDOJ_HSec4CYGEH"
 mapping = "pathname"
 lightTheme = "light"
