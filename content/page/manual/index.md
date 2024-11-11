@@ -13,9 +13,9 @@ menu:
 
 ## About him
 
-Duncan has lived his entire life in and around the city The Hague in the Netherlands. In January 2020 he moved from an apartment in the city to a remodeled farm in the outskirts of a small village near 's-Hertogenbosch. Here he lives with his wife Sylvana and two dogs Pixel and Hurley.
+Duncan has lived his entire life in and around the city The Hague in the Netherlands. In January 2020 he moved from an apartment in the city to a remodeled farm in the outskirts of a small village near 's-Hertogenbosch. Here he lives with his wife Sylvana and a king poodle [Navi](https://zeldawiki.wiki/wiki/Navi).
 
-Away from keyboard he enjoys riding his motorcycle, walking with his dogs through the biggest forest he can find. For relaxation he can be found on the couch watching movies, tv shows or playing a console game. As a traditional computer nerd he also has interest in 3D printing, home automation and gadget geekery. Looking for a conversation starter, and have interest in something that requires a plug, he suggests to start there. 
+Away from keyboard he enjoys riding his motorcycle, walking with his dog through the biggest forest he can find. For relaxation he can be found on the couch watching movies, tv shows or playing a console game. As a traditional computer nerd he also has interest in 3D printing, home automation and gadget geekery. Looking for a conversation starter, and have interest in something that requires a plug, he suggests to start there. 
 
 To keep himself inside the recommended BMI range, he run's three times a week. He also loves mountain biking.
 
