@@ -2,15 +2,11 @@ ARG NODE_VERSION=16
 FROM mcr.microsoft.com/devcontainers/javascript-node:${NODE_VERSION}
 
 ARG VARIANT=hugo
-ARG VERSION=latest
+ARG VERSION=0.127.0
 
 # Download Hugo
 RUN apt-get update && apt-get install -y ca-certificates openssl git curl && \
     rm -rf /var/lib/apt/lists/* && \
-    case ${VERSION} in \
-    latest) \
-    export VERSION=$(curl -s https://api.github.com/repos/gohugoio/hugo/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4)}') ;;\
-    esac && \
     echo ${VERSION} && \
     case $(uname -m) in \
     aarch64) \
